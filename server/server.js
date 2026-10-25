@@ -27,6 +27,7 @@ import fs from 'node:fs';
 import { syncCodingExercises } from './services/exerciseCatalog.js';
 import { initFirebaseAdmin } from './config/firebaseAdmin.js';
 import { resolveAuthUser } from './middleware/auth.js';
+import { checkNeonHealth, queryAllNeon } from './db/neon.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +67,6 @@ try { syncCurriculumAssessments(); } catch (err) { console.error('Curriculum ass
 try { syncCodingExercises(); } catch (err) { console.error('Coding exercises sync error:', err.message); }
 try { initFirebaseAdmin(); } catch (err) { console.error('Firebase Admin init error:', err.message); }
 
-import { checkNeonHealth, queryAllNeon } from './db/neon.js';
 
 // Health check endpoint (reports LMS Engine and Neon Cloud PostgreSQL status)
 app.get('/api/health', async (req, res) => {
@@ -128,9 +128,13 @@ app.get('/api/neon/courses', async (req, res) => {
 });
 
 // API Routes
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+const uploadsDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, '../uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (e) {
+  // Safe ignore in serverless environments
 }
 app.use('/uploads', express.static(uploadsDir));
 

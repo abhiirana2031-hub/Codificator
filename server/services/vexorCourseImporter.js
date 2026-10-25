@@ -4,8 +4,22 @@ import { fileURLToPath } from 'node:url';
 import { queryOne, runQuery, transaction } from '../db/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const courseDataPath = path.resolve(__dirname, '../data/vexorCourses.json');
-const sourceCourses = JSON.parse(fs.readFileSync(courseDataPath, 'utf8'));
+const candidatePaths = [
+  path.resolve(__dirname, '../data/vexorCourses.json'),
+  path.resolve(process.cwd(), 'server/data/vexorCourses.json'),
+  path.resolve(process.cwd(), 'data/vexorCourses.json')
+];
+let sourceCourses = [];
+for (const p of candidatePaths) {
+  if (fs.existsSync(p)) {
+    try {
+      sourceCourses = JSON.parse(fs.readFileSync(p, 'utf8'));
+      break;
+    } catch (e) {
+      console.warn('Failed to parse vexorCourses.json at', p, e.message);
+    }
+  }
+}
 
 const courseSettings = {
   python: {

@@ -8,9 +8,13 @@ import { parseAuthUser, resolveAuthUser, requireAuth, requireRole, logAudit } fr
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const avatarsDir = path.join(__dirname, '../../uploads/avatars');
-if (!fs.existsSync(avatarsDir)) {
-  fs.mkdirSync(avatarsDir, { recursive: true });
+const avatarsDir = process.env.VERCEL ? '/tmp/uploads/avatars' : path.join(__dirname, '../../uploads/avatars');
+try {
+  if (!fs.existsSync(avatarsDir)) {
+    fs.mkdirSync(avatarsDir, { recursive: true });
+  }
+} catch (e) {
+  // Safe ignore in serverless environments
 }
 
 const router = express.Router();

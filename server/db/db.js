@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { schemaSql as bundledSchemaSql } from './schemaText.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,8 +11,12 @@ const DB_PATH = process.env.LMS_DB_PATH || (process.env.VERCEL ? '/tmp/lms.db' :
 
 // Ensure db directory exists
 const dir = path.dirname(DB_PATH);
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true });
+try {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+} catch (e) {
+  // Ignore filesystem errors in serverless environments
 }
 
 export const db = new DatabaseSync(DB_PATH);
@@ -23,9 +28,16 @@ db.exec('PRAGMA synchronous = NORMAL;');
 
 // Initialize schema and non-destructive column migrations
 export function initSchema() {
-  const schemaPath = path.join(__dirname, 'schema.sql');
-  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-  db.exec(schemaSql);
+  let schemaSql = bundledSchemaSql;
+  if (!schemaSql) {
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    }
+  }
+  if (schemaSql) {
+    db.exec(schemaSql);
+  }
 
   // Non-destructive migrations for existing databases
   try {
