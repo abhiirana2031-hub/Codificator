@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { createOrder, verifySignature } from '../services/razorpayService.js';
 import { resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { runQuery, queryOne, queryAll, transaction } from '../db/db.js';
+import { queryOneNeon, queryAllNeon, runNeonQuery } from '../db/neon.js';
 import { ensureEnrollment } from '../services/progressionEngine.js';
 import { createNotification } from '../services/notificationService.js';
 import { PLANS } from '../services/billingService.js';
@@ -35,10 +36,18 @@ router.post('/create-order', async (req, res) => {
     let courseRecord = null;
 
     if (courseId) {
-      courseRecord = queryOne(
-        'SELECT id, title, price, original_price, status, is_published FROM courses WHERE id = ? OR slug = ?',
-        [courseId, courseId]
-      );
+      const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+      if (IS_SERVERLESS) {
+        courseRecord = await queryOneNeon(
+          'SELECT id, title, price, original_price, status, is_published FROM courses WHERE id = $1 OR slug = $2',
+          [courseId, courseId]
+        );
+      } else {
+        courseRecord = queryOne(
+          'SELECT id, title, price, original_price, status, is_published FROM courses WHERE id = ? OR slug = ?',
+          [courseId, courseId]
+        );
+      }
 
       if (!courseRecord) {
         return res.status(404).json({ error: 'Course not found' });

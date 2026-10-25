@@ -1,5 +1,6 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery } from '../db/db.js';
+import { queryOneNeon, queryAllNeon } from '../db/neon.js';
 import { parseAuthUser, requireAuth } from '../middleware/auth.js';
 import {
   ensureEnrollment,
@@ -16,9 +17,40 @@ import { formatLessonMarkdown } from '../services/pdfCourseScanner.js';
 const router = express.Router();
 
 // Get student curriculum with locked/unlocked states and progress
-router.get('/:courseId/curriculum', requireAuth, (req, res) => {
+router.get('/:courseId/curriculum', requireAuth, async (req, res) => {
   const { courseId } = req.params;
   const userId = req.user.id;
+
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon('SELECT * FROM courses WHERE id = $1 OR slug = $2', [courseId, courseId]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      const modules = await queryAllNeon(
+        'SELECT * FROM modules WHERE course_id = $1 ORDER BY order_index ASC',
+        [course.id]
+      );
+
+      const lessons = await queryAllNeon(
+        'SELECT * FROM lessons WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1) ORDER BY order_index ASC',
+        [course.id]
+      );
+
+      return res.json({
+        course,
+        enrollment: { id: `enr-${userId}-${course.id}`, user_id: userId, course_id: course.id, progress_percent: 0, status: 'ACTIVE' },
+        curriculum: modules.map((m, idx) => ({
+          ...m,
+          is_unlocked: idx === 0,
+          lessons: lessons.filter(l => l.module_id === m.id)
+        })),
+        resumeLesson: lessons[0] || null
+      });
+    } catch (err) {
+      console.error('[curriculum Neon error]', err);
+    }
+  }
 
   const course = queryOne('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
   if (!course) return res.status(404).json({ error: 'Course not found' });

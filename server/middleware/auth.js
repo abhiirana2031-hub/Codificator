@@ -1,4 +1,5 @@
 import { queryOne, runQuery } from '../db/db.js';
+import { queryOneNeon, runNeonQuery } from '../db/neon.js';
 import { getFirebaseAuth } from '../config/firebaseAdmin.js';
 
 /**
@@ -63,8 +64,47 @@ export async function resolveAuthUser(req) {
       if (decoded) {
         const firebaseUid = decoded.uid;
         const email = decoded.email ? decoded.email.trim().toLowerCase() : null;
+        const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 
-        // Check if user already exists by firebase_uid or email
+        if (IS_SERVERLESS) {
+          try {
+            let user = null;
+            if (firebaseUid) {
+              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE firebase_uid = $1', [firebaseUid]);
+            }
+            if (!user && email) {
+              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE email = $1', [email]);
+              if (user && !user.firebase_uid) {
+                await runNeonQuery('UPDATE users SET firebase_uid = $1 WHERE id = $2', [firebaseUid, user.id]);
+                user.firebase_uid = firebaseUid;
+              }
+            }
+
+            if (!user && (email || firebaseUid)) {
+              const newId = `usr-${firebaseUid.slice(0, 12)}`;
+              const name = decoded.name || (email ? email.split('@')[0] : 'Student');
+              const avatarUrl = decoded.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=10b981`;
+
+              await runNeonQuery(
+                `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
+                 VALUES ($1, $2, $3, $4, $5, 'STUDENT', $6)
+                 ON CONFLICT (id) DO NOTHING`,
+                [newId, firebaseUid, email || `${newId}@local.codificator.io`, `oauth:firebase:${firebaseUid}`, name, avatarUrl]
+              );
+
+              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE id = $1', [newId]);
+              if (!user) {
+                user = { id: newId, firebase_uid: firebaseUid, email: email || `${newId}@local.codificator.io`, name, role: 'STUDENT', avatar_url: avatarUrl, bio: '' };
+              }
+            }
+
+            if (user) return user;
+          } catch (neonAuthErr) {
+            console.error('⚠️ [NEON AUTH ERROR]:', neonAuthErr.message);
+          }
+        }
+
+        // Check if user already exists by firebase_uid or email (SQLite / local)
         let user = null;
         if (firebaseUid) {
           user = queryOne('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE firebase_uid = ?', [firebaseUid]);
@@ -105,6 +145,17 @@ export async function resolveAuthUser(req) {
   }
 
   // 2. Fallback to Local ID check (for local development, testing, and seeded demo accounts)
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const neonUser = await queryOneNeon(
+        'SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE id = $1 OR firebase_uid = $2 OR email = $3',
+        [rawToken, rawToken, rawToken]
+      );
+      if (neonUser) return neonUser;
+    } catch (e) { /* safe fallback */ }
+  }
+
   const user = queryOne(
     'SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE id = ? OR firebase_uid = ?',
     [rawToken, rawToken]

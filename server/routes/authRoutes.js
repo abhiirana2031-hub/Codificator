@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
+import { queryOneNeon, runNeonQuery } from '../db/neon.js';
 import { parseAuthUser, resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -47,8 +48,17 @@ router.get('/me', async (req, res) => {
   }
 
   // Refresh full user row from database
-  const fullUser = queryOne('SELECT * FROM users WHERE id = ?', [user.id]);
-  return res.json({ user: sanitizeUser(fullUser) });
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  let fullUser = null;
+  if (IS_SERVERLESS) {
+    try {
+      fullUser = await queryOneNeon('SELECT * FROM users WHERE id = $1', [user.id]);
+    } catch (e) { /* fallback */ }
+  } else {
+    fullUser = queryOne('SELECT * FROM users WHERE id = ?', [user.id]);
+  }
+
+  return res.json({ user: sanitizeUser(fullUser || user) });
 });
 
 // 2. Admin & Operator only: List registered users with pagination & search
@@ -516,33 +526,73 @@ router.post('/users/bulk-delete', requireAuth, requireRole('ADMIN'), (req, res) 
 router.post('/firebase-sync', async (req, res) => {
   try {
     let user = await resolveAuthUser(req);
+    const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 
     // Resilient fallback: If token parsing failed, resolve or provision from body credentials
     if (!user && req.body) {
       const { email, name, avatar_url, uid } = req.body;
       if (email || uid) {
         const cleanEmail = email ? email.trim().toLowerCase() : null;
-        if (uid) {
-          user = queryOne('SELECT * FROM users WHERE firebase_uid = ?', [uid]);
-        }
-        if (!user && cleanEmail) {
-          user = queryOne('SELECT * FROM users WHERE email = ?', [cleanEmail]);
-          if (user && uid && !user.firebase_uid) {
-            runQuery('UPDATE users SET firebase_uid = ? WHERE id = ?', [uid, user.id]);
-            user.firebase_uid = uid;
+        const newId = `usr-${(uid || Date.now().toString()).slice(0, 12)}`;
+        const userName = name || (cleanEmail ? cleanEmail.split('@')[0] : 'Student');
+        const userAvatar = avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=10b981`;
+
+        if (IS_SERVERLESS) {
+          try {
+            if (uid) {
+              user = await queryOneNeon('SELECT * FROM users WHERE firebase_uid = $1', [uid]);
+            }
+            if (!user && cleanEmail) {
+              user = await queryOneNeon('SELECT * FROM users WHERE email = $1', [cleanEmail]);
+              if (user && uid && !user.firebase_uid) {
+                await runNeonQuery('UPDATE users SET firebase_uid = $1 WHERE id = $2', [uid, user.id]);
+                user.firebase_uid = uid;
+              }
+            }
+            if (!user) {
+              await runNeonQuery(
+                `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
+                 VALUES ($1, $2, $3, $4, $5, 'STUDENT', $6)
+                 ON CONFLICT (id) DO NOTHING`,
+                [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, userAvatar]
+              );
+              user = await queryOneNeon('SELECT * FROM users WHERE id = $1', [newId]);
+            }
+          } catch (neonErr) {
+            console.error('⚠️ [Neon firebase-sync error]:', neonErr.message);
+          }
+        } else {
+          if (uid) {
+            user = queryOne('SELECT * FROM users WHERE firebase_uid = ?', [uid]);
+          }
+          if (!user && cleanEmail) {
+            user = queryOne('SELECT * FROM users WHERE email = ?', [cleanEmail]);
+            if (user && uid && !user.firebase_uid) {
+              runQuery('UPDATE users SET firebase_uid = ? WHERE id = ?', [uid, user.id]);
+              user.firebase_uid = uid;
+            }
+          }
+          if (!user) {
+            runQuery(
+              `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
+               VALUES (?, ?, ?, ?, ?, 'STUDENT', ?)`,
+              [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, userAvatar]
+            );
+            user = queryOne('SELECT * FROM users WHERE id = ?', [newId]);
           }
         }
 
+        // Guaranteed fallback if database write is still processing
         if (!user) {
-          const newId = `usr-${(uid || Date.now().toString()).slice(0, 12)}`;
-          const userName = name || (cleanEmail ? cleanEmail.split('@')[0] : 'Student');
-          const userAvatar = avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=10b981`;
-          runQuery(
-            `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
-             VALUES (?, ?, ?, ?, ?, 'STUDENT', ?)`,
-            [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, userAvatar]
-          );
-          user = queryOne('SELECT * FROM users WHERE id = ?', [newId]);
+          user = {
+            id: newId,
+            firebase_uid: uid || null,
+            email: cleanEmail,
+            name: userName,
+            role: 'STUDENT',
+            avatar_url: userAvatar,
+            bio: ''
+          };
         }
       }
     }
