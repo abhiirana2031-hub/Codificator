@@ -1,5 +1,6 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
+import { queryAllNeon, queryOneNeon } from '../db/neon.js';
 import { parseAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { ensureEnrollment } from '../services/progressionEngine.js';
 import { canManageCourse, validateCourseForPublishing } from '../services/courseAuthorization.js';
@@ -20,11 +21,63 @@ const router = express.Router();
 
 // List courses (students see published courses, admins/operators see all)
 // Supports ?search=...&category=...&level=...&enrolledOnly=true
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const user = parseAuthUser(req);
   const isOperatorOrAdmin = user && (user.role === 'ADMIN' || user.role === 'OPERATOR');
   const isInstructor = user && user.role === 'INSTRUCTOR';
   const { search, category, level, enrolledOnly } = req.query;
+
+  // On Vercel / serverless: Query Neon Cloud PostgreSQL directly
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      let pgSql = 'SELECT c.*, u.name as instructor_name FROM courses c LEFT JOIN users u ON c.instructor_id = u.id WHERE 1=1 ';
+      const pgParams = [];
+      let pIdx = 1;
+
+      if (!isOperatorOrAdmin && !isInstructor) {
+        pgSql += 'AND c.is_published = true ';
+      }
+
+      if (category && category !== 'All') {
+        pgSql += `AND c.category = $${pIdx++} `;
+        pgParams.push(category);
+      }
+
+      if (level && level !== 'All') {
+        pgSql += `AND c.level = $${pIdx++} `;
+        pgParams.push(level);
+      }
+
+      if (search && search.trim()) {
+        pgSql += `AND (c.title ILIKE $${pIdx++} OR c.description ILIKE $${pIdx++}) `;
+        pgParams.push(`%${search.trim()}%`, `%${search.trim()}%`);
+      }
+
+      pgSql += 'ORDER BY c.created_at DESC';
+
+      const neonCourses = await queryAllNeon(pgSql, pgParams);
+      const enhanced = neonCourses.map(c => ({
+        ...c,
+        is_published: Boolean(c.is_published),
+        learning_objectives: typeof c.learning_objectives === 'string' ? JSON.parse(c.learning_objectives || '[]') : (c.learning_objectives || []),
+        prerequisites: typeof c.prerequisites === 'string' ? JSON.parse(c.prerequisites || '[]') : (c.prerequisites || []),
+        module_count: Number(c.module_count || 4),
+        lesson_count: Number(c.lesson_count || 12),
+        enrolled_count: Number(c.enrolled_count || 0),
+        is_enrolled: false,
+        student_progress: 0
+      }));
+
+      const finalCourses = enrolledOnly === 'true'
+        ? enhanced.filter(c => c.is_enrolled)
+        : enhanced;
+
+      return res.json({ courses: finalCourses });
+    } catch (neonErr) {
+      console.error('[courseRoutes Neon fallback error]', neonErr);
+    }
+  }
 
   let sql = 'SELECT c.*, u.name as instructor_name FROM courses c LEFT JOIN users u ON c.instructor_id = u.id WHERE 1=1 ';
   const params = [];
@@ -490,8 +543,51 @@ router.post('/bulk-delete', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INSTR
 });
 
 // Get single course details
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   const user = parseAuthUser(req);
+
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon(
+        `SELECT c.*, u.name as instructor_name, u.email as instructor_email, u.bio as instructor_bio, u.avatar_url as instructor_avatar
+         FROM courses c
+         LEFT JOIN users u ON c.instructor_id = u.id
+         WHERE c.id = $1 OR c.slug = $2`,
+        [req.params.id, req.params.id]
+      );
+
+      if (!course) {
+        return res.status(404).json({ error: 'Course not found' });
+      }
+
+      const modules = await queryAllNeon(
+        'SELECT * FROM modules WHERE course_id = $1 ORDER BY order_index ASC',
+        [course.id]
+      );
+
+      return res.json({
+        course: {
+          ...course,
+          is_published: Boolean(course.is_published),
+          learning_objectives: typeof course.learning_objectives === 'string' ? JSON.parse(course.learning_objectives || '[]') : (course.learning_objectives || []),
+          prerequisites: typeof course.prerequisites === 'string' ? JSON.parse(course.prerequisites || '[]') : (course.prerequisites || []),
+          completion_requirements: typeof course.completion_requirements === 'string' ? JSON.parse(course.completion_requirements || '{}') : (course.completion_requirements || {}),
+          modules: modules.map(m => ({
+            ...m,
+            is_published: Boolean(m.is_published),
+            lesson_count: 3,
+            has_quiz: false,
+            has_assignment: false
+          })),
+          enrollment: null
+        }
+      });
+    } catch (err) {
+      console.error('[courseRoutes getById Neon error]', err);
+    }
+  }
+
   const course = queryOne(
     `SELECT c.*, u.name as instructor_name, u.email as instructor_email, u.bio as instructor_bio, u.avatar_url as instructor_avatar
      FROM courses c

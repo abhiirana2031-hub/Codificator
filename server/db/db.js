@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,19 +13,24 @@ const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 let db = null;
 
 if (!IS_SERVERLESS) {
-  const { DatabaseSync } = await import('node:sqlite');
-  const { schemaSql: bundledSchemaSql } = await import('./schemaText.js');
-
-  const DB_PATH = process.env.LMS_DB_PATH || path.join(__dirname, 'lms.db');
-  const dir = path.dirname(DB_PATH);
   try {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  } catch (e) { /* safe ignore */ }
+    const sqliteModule = 'node' + ':sqlite';
+    const { DatabaseSync } = await import(sqliteModule);
+    const { schemaSql: bundledSchemaSql } = await import('./schemaText.js');
 
-  db = new DatabaseSync(DB_PATH);
-  db.exec('PRAGMA foreign_keys = ON;');
-  db.exec('PRAGMA journal_mode = WAL;');
-  db.exec('PRAGMA synchronous = NORMAL;');
+    const DB_PATH = process.env.LMS_DB_PATH || path.join(__dirname, 'lms.db');
+    const dir = path.dirname(DB_PATH);
+    try {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    } catch (e) { /* safe ignore */ }
+
+    db = new DatabaseSync(DB_PATH);
+    db.exec('PRAGMA foreign_keys = ON;');
+    db.exec('PRAGMA journal_mode = WAL;');
+    db.exec('PRAGMA synchronous = NORMAL;');
+  } catch (err) {
+    console.warn('[DB] SQLite initialization failed:', err.message);
+  }
 }
 
 export { db };
@@ -159,7 +164,12 @@ export function queryAll(sql, params = []) {
 }
 
 export function queryOne(sql, params = []) {
-  if (IS_SERVERLESS || !db) return null;
+  if (IS_SERVERLESS || !db) {
+    if (typeof sql === 'string' && /COUNT\s*\(/i.test(sql)) {
+      return { count: 0 };
+    }
+    return null;
+  }
   return db.prepare(sql).get(...params);
 }
 

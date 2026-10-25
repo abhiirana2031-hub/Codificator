@@ -59,12 +59,14 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Initialize DB schema & seed initial state if empty
-try { initSchema(); } catch (err) { console.error('Schema init error:', err.message); }
-try { seedDatabase(); } catch (err) { console.error('Database seed error:', err.message); }
-try { syncVexorCourses(); } catch (err) { console.error('Vexor course import error:', err.message); }
-try { syncCurriculumAssessments(); } catch (err) { console.error('Curriculum assessment sync error:', err.message); }
-try { syncCodingExercises(); } catch (err) { console.error('Coding exercises sync error:', err.message); }
+// Initialize DB schema & seed initial state if empty (Local development only - Vercel uses Neon Cloud PostgreSQL)
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  try { initSchema(); } catch (err) { console.error('Schema init error:', err.message); }
+  try { seedDatabase(); } catch (err) { console.error('Database seed error:', err.message); }
+  try { syncVexorCourses(); } catch (err) { console.error('Vexor course import error:', err.message); }
+  try { syncCurriculumAssessments(); } catch (err) { console.error('Curriculum assessment sync error:', err.message); }
+  try { syncCodingExercises(); } catch (err) { console.error('Coding exercises sync error:', err.message); }
+}
 try { initFirebaseAdmin(); } catch (err) { console.error('Firebase Admin init error:', err.message); }
 
 
