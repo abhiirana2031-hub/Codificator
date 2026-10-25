@@ -539,6 +539,11 @@ router.post('/firebase-sync', async (req, res) => {
         const newId = `usr-${(uid || Date.now().toString()).slice(0, 12)}`;
         const userName = name || (cleanEmail ? cleanEmail.split('@')[0] : 'Student');
         const userAvatar = avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=10b981`;
+        const assignedRole = (cleanEmail === 'abhayrana8272@gmail.com' || cleanEmail === 'admin@codificators.com' || (cleanEmail && cleanEmail.startsWith('admin@')))
+          ? 'ADMIN'
+          : (cleanEmail === 'vexoritsolutions@gmail.com' || cleanEmail === 'operator@codificators.com' || (cleanEmail && cleanEmail.startsWith('operator@')))
+            ? 'OPERATOR'
+            : 'STUDENT';
 
         if (IS_SERVERLESS) {
           try {
@@ -555,9 +560,9 @@ router.post('/firebase-sync', async (req, res) => {
             if (!user) {
               await runNeonQuery(
                 `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
-                 VALUES ($1, $2, $3, $4, $5, 'STUDENT', $6)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                  ON CONFLICT (id) DO NOTHING`,
-                [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, userAvatar]
+                [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, assignedRole, userAvatar]
               );
               user = await queryOneNeon('SELECT * FROM users WHERE id = $1', [newId]);
             }
@@ -578,8 +583,8 @@ router.post('/firebase-sync', async (req, res) => {
           if (!user) {
             runQuery(
               `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
-               VALUES (?, ?, ?, ?, ?, 'STUDENT', ?)`,
-              [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, userAvatar]
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [newId, uid || null, cleanEmail || `${newId}@local.codificator.io`, `oauth:firebase:${uid || newId}`, userName, assignedRole, userAvatar]
             );
             user = queryOne('SELECT * FROM users WHERE id = ?', [newId]);
           }

@@ -1,13 +1,35 @@
 import express from 'express';
 import { queryAll, queryOne } from '../db/db.js';
+import { queryAllNeon, queryOneNeon } from '../db/neon.js';
 import { requireAuth } from '../middleware/auth.js';
 import { issueCertificateIfEligible } from '../services/progressionEngine.js';
 import { createNotification } from '../services/notificationService.js';
 
 const router = express.Router();
+const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 
 // List user's earned certificates
-router.get('/my', requireAuth, (req, res) => {
+router.get('/my', requireAuth, async (req, res) => {
+  const userId = req.user.id;
+
+  if (IS_SERVERLESS) {
+    try {
+      const certs = await queryAllNeon(
+        `SELECT cert.*, c.title as course_title, c.thumbnail as course_thumbnail,
+                u.name as student_name, u.email as student_email
+         FROM certificates cert
+         JOIN courses c ON cert.course_id = c.id
+         JOIN users u ON cert.user_id = u.id
+         WHERE cert.user_id = $1
+         ORDER BY cert.issue_date DESC`,
+        [userId]
+      );
+      return res.json({ certificates: certs });
+    } catch (err) {
+      console.error('[certificateRoutes] Neon error in /my:', err.message);
+    }
+  }
+
   const certs = queryAll(
     `SELECT cert.*, c.title as course_title, c.thumbnail as course_thumbnail,
             u.name as student_name, u.email as student_email
@@ -16,7 +38,7 @@ router.get('/my', requireAuth, (req, res) => {
      JOIN users u ON cert.user_id = u.id
      WHERE cert.user_id = ?
      ORDER BY cert.issue_date DESC`,
-    [req.user.id]
+    [userId]
   );
 
   return res.json({ certificates: certs });
@@ -82,18 +104,52 @@ router.post('/claim/:courseId', requireAuth, (req, res) => {
 });
 
 // Public certificate verification endpoint (no auth required!)
-router.get('/verify/:code', (req, res) => {
+router.get('/verify/:code', async (req, res) => {
   const { code } = req.params;
-  const cert = queryOne(
-    `SELECT cert.id, cert.certificate_code, cert.issue_date, cert.completion_date, cert.template_version,
-            c.id as course_id, c.title as course_title, c.category as course_category,
-            u.name as student_name, u.avatar_url as student_avatar
-     FROM certificates cert
-     JOIN courses c ON cert.course_id = c.id
-     JOIN users u ON cert.user_id = u.id
-     WHERE UPPER(cert.certificate_code) = UPPER(?)`,
-    [code.trim()]
-  );
+  const rawCode = (code || '').trim();
+  if (!rawCode) {
+    return res.status(400).json({ valid: false, error: 'Certificate code is required' });
+  }
+
+  // Handle various formats:
+  // e.g. "CFWD-2026-10427", "CFWD 2026 10427", "CFWD CFWD 202610427", "CFWD-202610427", "CFWD202610427"
+  const cleanCode = rawCode.replace(/^CFWD\s+CFWD/i, 'CFWD').trim();
+  const alphanumericOnly = cleanCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const standardizedCode = cleanCode.replace(/[\s_]+/g, '-').toUpperCase();
+
+  let cert = null;
+
+  if (IS_SERVERLESS) {
+    try {
+      cert = await queryOneNeon(
+        `SELECT cert.id, cert.certificate_code, cert.issue_date, cert.completion_date, cert.template_version,
+                c.id as course_id, c.title as course_title, c.category as course_category,
+                u.name as student_name, u.avatar_url as student_avatar
+         FROM certificates cert
+         JOIN courses c ON cert.course_id = c.id
+         JOIN users u ON cert.user_id = u.id
+         WHERE UPPER(cert.certificate_code) = UPPER($1)
+            OR UPPER(cert.certificate_code) = UPPER($2)
+            OR REPLACE(REPLACE(UPPER(cert.certificate_code), '-', ''), ' ', '') = $3`,
+        [cleanCode, standardizedCode, alphanumericOnly]
+      );
+    } catch (err) {
+      console.error('[certificateRoutes] Neon verification error:', err.message);
+    }
+  } else {
+    cert = queryOne(
+      `SELECT cert.id, cert.certificate_code, cert.issue_date, cert.completion_date, cert.template_version,
+              c.id as course_id, c.title as course_title, c.category as course_category,
+              u.name as student_name, u.avatar_url as student_avatar
+       FROM certificates cert
+       JOIN courses c ON cert.course_id = c.id
+       JOIN users u ON cert.user_id = u.id
+       WHERE UPPER(cert.certificate_code) = UPPER(?)
+          OR UPPER(cert.certificate_code) = UPPER(?)
+          OR REPLACE(REPLACE(UPPER(cert.certificate_code), '-', ''), ' ', '') = ?`,
+      [cleanCode, standardizedCode, alphanumericOnly]
+    );
+  }
 
   if (!cert) {
     return res.status(404).json({

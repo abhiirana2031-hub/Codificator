@@ -1,7 +1,7 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
 import { queryAllNeon, queryOneNeon } from '../db/neon.js';
-import { parseAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
+import { parseAuthUser, resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { ensureEnrollment } from '../services/progressionEngine.js';
 import { canManageCourse, validateCourseForPublishing } from '../services/courseAuthorization.js';
 import { hasCourseEntitlement, getAvailablePlans } from '../services/billingService.js';
@@ -22,7 +22,7 @@ const router = express.Router();
 // List courses (students see published courses, admins/operators see all)
 // Supports ?search=...&category=...&level=...&enrolledOnly=true
 router.get('/', async (req, res) => {
-  const user = parseAuthUser(req);
+  const user = (await resolveAuthUser(req)) || parseAuthUser(req);
   const isOperatorOrAdmin = user && (user.role === 'ADMIN' || user.role === 'OPERATOR');
   const isInstructor = user && user.role === 'INSTRUCTOR';
   const { search, category, level, enrolledOnly } = req.query;
@@ -57,6 +57,17 @@ router.get('/', async (req, res) => {
       pgSql += 'ORDER BY c.created_at DESC';
 
       const neonCourses = await queryAllNeon(pgSql, pgParams);
+
+      let userEnrollmentsMap = new Map();
+      if (user) {
+        try {
+          const userEnrollments = await queryAllNeon('SELECT course_id, progress_percent FROM enrollments WHERE user_id = $1', [user.id]);
+          userEnrollmentsMap = new Map(userEnrollments.map(e => [e.course_id, e.progress_percent]));
+        } catch (enrErr) {
+          console.warn('[courseRoutes] Failed to fetch enrollments for user:', enrErr.message);
+        }
+      }
+
       const enhanced = neonCourses.map(c => ({
         ...c,
         is_published: Boolean(c.is_published),
@@ -65,8 +76,8 @@ router.get('/', async (req, res) => {
         module_count: Number(c.module_count || 4),
         lesson_count: Number(c.lesson_count || 12),
         enrolled_count: Number(c.enrolled_count || 0),
-        is_enrolled: false,
-        student_progress: 0
+        is_enrolled: userEnrollmentsMap.has(c.id),
+        student_progress: Number(userEnrollmentsMap.get(c.id)) || 0
       }));
 
       const finalCourses = enrolledOnly === 'true'

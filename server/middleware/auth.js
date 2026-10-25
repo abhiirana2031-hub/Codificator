@@ -84,17 +84,23 @@ export async function resolveAuthUser(req) {
               const newId = `usr-${firebaseUid.slice(0, 12)}`;
               const name = decoded.name || (email ? email.split('@')[0] : 'Student');
               const avatarUrl = decoded.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=10b981`;
+              const cleanLower = (email || '').toLowerCase().trim();
+              const assignedRole = (cleanLower === 'abhayrana8272@gmail.com' || cleanLower === 'admin@codificators.com' || cleanLower.startsWith('admin@'))
+                ? 'ADMIN'
+                : (cleanLower === 'vexoritsolutions@gmail.com' || cleanLower === 'operator@codificators.com' || cleanLower.startsWith('operator@'))
+                  ? 'OPERATOR'
+                  : 'STUDENT';
 
               await runNeonQuery(
                 `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
-                 VALUES ($1, $2, $3, $4, $5, 'STUDENT', $6)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                  ON CONFLICT (id) DO NOTHING`,
-                [newId, firebaseUid, email || `${newId}@local.codificator.io`, `oauth:firebase:${firebaseUid}`, name, avatarUrl]
+                [newId, firebaseUid, email || `${newId}@local.codificator.io`, `oauth:firebase:${firebaseUid}`, name, assignedRole, avatarUrl]
               );
 
               user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE id = $1', [newId]);
               if (!user) {
-                user = { id: newId, firebase_uid: firebaseUid, email: email || `${newId}@local.codificator.io`, name, role: 'STUDENT', avatar_url: avatarUrl, bio: '' };
+                user = { id: newId, firebase_uid: firebaseUid, email: email || `${newId}@local.codificator.io`, name, role: assignedRole, avatar_url: avatarUrl, bio: '' };
               }
             }
 
@@ -123,11 +129,17 @@ export async function resolveAuthUser(req) {
           const newId = `usr-${firebaseUid.slice(0, 12)}`;
           const name = decoded.name || (email ? email.split('@')[0] : 'Student');
           const avatarUrl = decoded.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=10b981`;
+          const cleanLower = (email || '').toLowerCase().trim();
+          const assignedRole = (cleanLower === 'abhayrana8272@gmail.com' || cleanLower === 'admin@codificators.com' || cleanLower.startsWith('admin@'))
+            ? 'ADMIN'
+            : (cleanLower === 'vexoritsolutions@gmail.com' || cleanLower === 'operator@codificators.com' || cleanLower.startsWith('operator@'))
+              ? 'OPERATOR'
+              : 'STUDENT';
 
           runQuery(
             `INSERT INTO users (id, firebase_uid, email, password_hash, name, role, avatar_url)
-             VALUES (?, ?, ?, ?, ?, 'STUDENT', ?)`,
-            [newId, firebaseUid, email || `${newId}@local.codificator.io`, `oauth:firebase:${firebaseUid}`, name, avatarUrl]
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [newId, firebaseUid, email || `${newId}@local.codificator.io`, `oauth:firebase:${firebaseUid}`, name, assignedRole, avatarUrl]
           );
 
           user = queryOne('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE id = ?', [newId]);
