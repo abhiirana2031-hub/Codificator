@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = process.env.LMS_DB_PATH || path.join(__dirname, 'lms.db');
+const DB_PATH = process.env.LMS_DB_PATH || (process.env.VERCEL ? '/tmp/lms.db' : path.join(__dirname, 'lms.db'));
 
 // Ensure db directory exists
 const dir = path.dirname(DB_PATH);

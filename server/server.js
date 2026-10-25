@@ -163,7 +163,7 @@ app.use((err, req, res, next) => {
 
 export default app;
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Codificators LMS API Server running on http://127.0.0.1:${PORT}`);
   });
