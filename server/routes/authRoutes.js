@@ -658,15 +658,15 @@ router.post('/firebase-sync', async (req, res) => {
 
         if (IS_SERVERLESS) {
           try {
-            if (uid) {
-              user = await queryOneNeon('SELECT * FROM users WHERE firebase_uid = $1', [uid]);
-            }
-            if (!user && cleanEmail) {
-              user = await queryOneNeon('SELECT * FROM users WHERE email = $1', [cleanEmail]);
-              if (user && uid && !user.firebase_uid) {
+            if (cleanEmail) {
+              user = await queryOneNeon('SELECT * FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))', [cleanEmail]);
+              if (user && uid && user.firebase_uid !== uid) {
                 await runNeonQuery('UPDATE users SET firebase_uid = $1 WHERE id = $2', [uid, user.id]);
                 user.firebase_uid = uid;
               }
+            }
+            if (!user && uid) {
+              user = await queryOneNeon('SELECT * FROM users WHERE firebase_uid = $1', [uid]);
             }
             if (!user) {
               await runNeonQuery(
@@ -681,15 +681,15 @@ router.post('/firebase-sync', async (req, res) => {
             console.error('⚠️ [Neon firebase-sync error]:', neonErr.message);
           }
         } else {
-          if (uid) {
-            user = queryOne('SELECT * FROM users WHERE firebase_uid = ?', [uid]);
-          }
-          if (!user && cleanEmail) {
-            user = queryOne('SELECT * FROM users WHERE email = ?', [cleanEmail]);
-            if (user && uid && !user.firebase_uid) {
+          if (cleanEmail) {
+            user = queryOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))', [cleanEmail]);
+            if (user && uid && user.firebase_uid !== uid) {
               runQuery('UPDATE users SET firebase_uid = ? WHERE id = ?', [uid, user.id]);
               user.firebase_uid = uid;
             }
+          }
+          if (!user && uid) {
+            user = queryOne('SELECT * FROM users WHERE firebase_uid = ?', [uid]);
           }
           if (!user) {
             runQuery(

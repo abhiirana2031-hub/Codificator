@@ -571,7 +571,7 @@ router.post('/bulk-delete', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INSTR
 
 // Get single course details
 router.get('/:id', async (req, res) => {
-  const user = parseAuthUser(req);
+  const user = (await resolveAuthUser(req)) || parseAuthUser(req);
 
   const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
   if (IS_SERVERLESS) {
@@ -593,6 +593,11 @@ router.get('/:id', async (req, res) => {
         [course.id]
       );
 
+      let enrollment = null;
+      if (user) {
+        enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2', [user.id, course.id]);
+      }
+
       return res.json({
         course: {
           ...course,
@@ -603,11 +608,11 @@ router.get('/:id', async (req, res) => {
           modules: modules.map(m => ({
             ...m,
             is_published: Boolean(m.is_published),
-            lesson_count: 3,
+            lesson_count: 7,
             has_quiz: false,
             has_assignment: false
           })),
-          enrollment: null
+          enrollment
         }
       });
     } catch (err) {

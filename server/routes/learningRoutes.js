@@ -27,6 +27,18 @@ router.get('/:courseId/curriculum', requireAuth, async (req, res) => {
       const course = await queryOneNeon('SELECT * FROM courses WHERE id = $1 OR slug = $2', [courseId, courseId]);
       if (!course) return res.status(404).json({ error: 'Course not found' });
 
+      let enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2', [userId, course.id]);
+      if (!enrollment) {
+        const enrollId = `enr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        await runNeonQuery(
+          `INSERT INTO enrollments (id, user_id, course_id, status, progress_percent)
+           VALUES ($1, $2, $3, 'ACTIVE', 0.0)
+           ON CONFLICT (user_id, course_id) DO NOTHING`,
+          [enrollId, userId, course.id]
+        );
+        enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2', [userId, course.id]);
+      }
+
       const modules = await queryAllNeon(
         'SELECT * FROM modules WHERE course_id = $1 ORDER BY order_index ASC',
         [course.id]
@@ -37,14 +49,26 @@ router.get('/:courseId/curriculum', requireAuth, async (req, res) => {
         [course.id]
       );
 
+      const moduleProgressList = enrollment
+        ? await queryAllNeon('SELECT module_id, is_completed, is_unlocked FROM module_progress WHERE enrollment_id = $1', [enrollment.id])
+        : [];
+      const mpMap = new Map(moduleProgressList.map(m => [m.module_id, m]));
+
+      const isCompletedUser = enrollment && (enrollment.status === 'COMPLETED' || enrollment.progress_percent >= 100);
+
       return res.json({
         course,
-        enrollment: { id: `enr-${userId}-${course.id}`, user_id: userId, course_id: course.id, progress_percent: 0, status: 'ACTIVE' },
-        curriculum: modules.map((m, idx) => ({
-          ...m,
-          is_unlocked: idx === 0,
-          lessons: lessons.filter(l => l.module_id === m.id)
-        })),
+        enrollment: enrollment || { id: `enr-${userId}-${course.id}`, user_id: userId, course_id: course.id, progress_percent: 0, status: 'ACTIVE' },
+        curriculum: modules.map((m, idx) => {
+          const mp = mpMap.get(m.id);
+          const isUnlocked = isCompletedUser || idx === 0 || (mp ? Boolean(mp.is_unlocked) : false);
+          return {
+            ...m,
+            is_unlocked: isUnlocked,
+            is_completed: isCompletedUser || (mp ? Boolean(mp.is_completed) : false),
+            lessons: lessons.filter(l => l.module_id === m.id)
+          };
+        }),
         resumeLesson: lessons[0] || null
       });
     } catch (err) {

@@ -69,15 +69,15 @@ export async function resolveAuthUser(req) {
         if (IS_SERVERLESS) {
           try {
             let user = null;
-            if (firebaseUid) {
-              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE firebase_uid = $1', [firebaseUid]);
-            }
-            if (!user && email) {
-              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE email = $1', [email]);
-              if (user && !user.firebase_uid) {
+            if (email) {
+              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))', [email]);
+              if (user && firebaseUid && user.firebase_uid !== firebaseUid) {
                 await runNeonQuery('UPDATE users SET firebase_uid = $1 WHERE id = $2', [firebaseUid, user.id]);
                 user.firebase_uid = firebaseUid;
               }
+            }
+            if (!user && firebaseUid) {
+              user = await queryOneNeon('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE firebase_uid = $1', [firebaseUid]);
             }
 
             if (!user && (email || firebaseUid)) {
@@ -110,18 +110,18 @@ export async function resolveAuthUser(req) {
           }
         }
 
-        // Check if user already exists by firebase_uid or email (SQLite / local)
+        // Check if user already exists by email or firebase_uid (SQLite / local)
         let user = null;
-        if (firebaseUid) {
-          user = queryOne('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE firebase_uid = ?', [firebaseUid]);
-        }
-        if (!user && email) {
-          user = queryOne('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE email = ?', [email]);
-          if (user && !user.firebase_uid) {
+        if (email) {
+          user = queryOne('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))', [email]);
+          if (user && firebaseUid && user.firebase_uid !== firebaseUid) {
             // Link firebase_uid to existing account
             runQuery('UPDATE users SET firebase_uid = ? WHERE id = ?', [firebaseUid, user.id]);
             user.firebase_uid = firebaseUid;
           }
+        }
+        if (!user && firebaseUid) {
+          user = queryOne('SELECT id, firebase_uid, email, name, role, avatar_url, bio FROM users WHERE firebase_uid = ?', [firebaseUid]);
         }
 
         // If user does not exist in relational DB, automatically provision user record
