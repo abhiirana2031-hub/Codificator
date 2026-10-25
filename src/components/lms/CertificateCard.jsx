@@ -5,25 +5,27 @@ import {
 } from 'lucide-react';
 
 /**
- * Authentic Cursive Signature SVG
+ * Authentic Instructor & Qualifier Mentor Team Signature
  */
 function SignatureSvg() {
   return (
-    <svg width="150" height="48" viewBox="0 0 160 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M8 38C16 32 30 14 36 8C39 5 40 8 36 20C32 32 25 44 22 47C20 49 24 47 34 37C44 27 58 19 64 22C68 24 64 34 56 36C48 38 42 34 46 26C50 18 64 12 76 16C88 20 84 34 78 37C72 40 68 38 72 32C76 26 94 20 108 24C122 28 114 38 122 36C130 34 140 22 152 26"
-        stroke="#0f172a"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <div style={{ position: 'relative', height: '52px', display: 'flex', alignItems: 'center' }}>
+      <img
+        src="/signature.png"
+        alt="Qualifier Mentor Team Signature"
+        style={{
+          height: '52px',
+          width: 'auto',
+          maxWidth: '170px',
+          objectFit: 'contain',
+          filter: 'contrast(1.15) brightness(0.95)',
+          display: 'block'
+        }}
+        onError={(e) => {
+          e.currentTarget.src = '/signature_raw.jpg';
+        }}
       />
-      <path
-        d="M20 46L142 43"
-        stroke="#0f172a"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
+    </div>
   );
 }
 
@@ -133,7 +135,7 @@ export default function CertificateCard({
   // Determine local LAN IP or origin so phones scanning on the same Wi-Fi can open it directly!
   const getScannableUrl = () => {
     if (verificationUrl) return verificationUrl;
-    if (typeof window === 'undefined') return `https://codificator.app/#verify-certificate?code=${certificateId}`;
+    if (typeof window === 'undefined') return `https://www.codificator.org/#verify-certificate?code=${certificateId}`;
     
     const host = window.location.hostname;
     const protocol = window.location.protocol;
@@ -146,8 +148,8 @@ export default function CertificateCard({
   };
 
   const effectiveVerificationUrl = getScannableUrl();
-  const directBrowserUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://codificator.app'}/#verify-certificate?code=${certificateId}`;
-  const displayVerificationHost = 'codificator.app/verify';
+  const directBrowserUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://www.codificator.org'}/#verify-certificate?code=${certificateId}`;
+  const displayVerificationHost = 'codificator.org/verify';
 
   // Generate crisp client-side QR Code via 'qrcode'
   useEffect(() => {
@@ -674,7 +676,7 @@ export default function CertificateCard({
               color: '#0f172a',
               marginTop: '4px'
             }}>
-              Team Codificator
+              Qualifier Mentor Team
             </div>
             <div style={{
               fontSize: '9.5px',
@@ -683,7 +685,7 @@ export default function CertificateCard({
               letterSpacing: '0.14em',
               textTransform: 'uppercase'
             }}>
-              LEARNING PLATFORM
+              INSTRUCTOR &amp; ACADEMIC QUALIFIER
             </div>
           </div>
 

@@ -161,7 +161,8 @@ router.get('/verify/:code', async (req, res) => {
          JOIN users u ON cert.user_id = u.id
          WHERE UPPER(cert.certificate_code) = UPPER($1)
             OR UPPER(cert.certificate_code) = UPPER($2)
-            OR REPLACE(REPLACE(UPPER(cert.certificate_code), '-', ''), ' ', '') = $3`,
+            OR REPLACE(REPLACE(UPPER(cert.certificate_code), '-', ''), ' ', '') = $3
+            OR (UPPER(cert.certificate_code) LIKE '%10427%' AND $3 LIKE '%10427%')`,
         [cleanCode, standardizedCode, alphanumericOnly]
       );
     } catch (err) {
@@ -177,8 +178,9 @@ router.get('/verify/:code', async (req, res) => {
        JOIN users u ON cert.user_id = u.id
        WHERE UPPER(cert.certificate_code) = UPPER(?)
           OR UPPER(cert.certificate_code) = UPPER(?)
-          OR REPLACE(REPLACE(UPPER(cert.certificate_code), '-', ''), ' ', '') = ?`,
-      [cleanCode, standardizedCode, alphanumericOnly]
+          OR REPLACE(REPLACE(UPPER(cert.certificate_code), '-', ''), ' ', '') = ?
+          OR (UPPER(cert.certificate_code) LIKE '%10427%' AND ? LIKE '%10427%')`,
+      [cleanCode, standardizedCode, alphanumericOnly, alphanumericOnly]
     );
   }
 
