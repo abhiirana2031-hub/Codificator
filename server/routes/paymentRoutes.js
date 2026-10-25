@@ -152,6 +152,32 @@ router.post('/create-order', async (req, res) => {
     const finalPriceRupees = calculatedAmountPaise / 100;
 
     // Persist PENDING order record in authoritative database
+    if (IS_SERVERLESS) {
+      try {
+        await runNeonQuery(
+          `INSERT INTO orders (
+            id, user_id, order_type, course_id, plan_id, amount, currency, status,
+            payment_method, transaction_ref, receipt_url, coupon_id, discount_amount, original_amount
+          ) VALUES ($1, $2, $3, $4, $5, $6, 'INR', 'PENDING', 'RAZORPAY', $7, $8, $9, $10, $11)`,
+          [
+            internalOrderId,
+            authUser.id,
+            courseRecord ? 'COURSE_PURCHASE' : 'SUBSCRIPTION',
+            courseRecord ? courseRecord.id : null,
+            planId || null,
+            finalPriceRupees,
+            order.order_id,
+            `/api/billing/receipts/${internalOrderId}`,
+            validatedCoupon ? validatedCoupon.id : null,
+            discountAmountRupees,
+            originalPriceRupees
+          ]
+        );
+      } catch (e) {
+        console.error('Neon pending order error:', e.message);
+      }
+    }
+
     runQuery(
       `INSERT INTO orders (
         id, user_id, order_type, course_id, plan_id, amount, currency, status,
@@ -245,10 +271,21 @@ router.post('/verify-payment', async (req, res) => {
     }
 
     // Signature verified! Look up the recorded pending or completed order in our database
-    const existingOrder = queryOne(
-      'SELECT * FROM orders WHERE transaction_ref = ? OR transaction_ref = ?',
-      [razorpay_order_id, razorpay_payment_id]
-    );
+    const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+    let existingOrder = null;
+    if (IS_SERVERLESS) {
+      try {
+        existingOrder = await queryOneNeon(
+          'SELECT * FROM orders WHERE transaction_ref = $1 OR transaction_ref = $2',
+          [razorpay_order_id, razorpay_payment_id]
+        );
+      } catch (e) { /* safe fallback */ }
+    } else {
+      existingOrder = queryOne(
+        'SELECT * FROM orders WHERE transaction_ref = ? OR transaction_ref = ?',
+        [razorpay_order_id, razorpay_payment_id]
+      );
+    }
 
     // Idempotency: If order was already COMPLETED, return success without duplicate processing
     if (existingOrder && existingOrder.status === 'COMPLETED') {
@@ -320,6 +357,34 @@ router.post('/verify-payment', async (req, res) => {
         }
 
         // Atomically create persistent enrollment
+        if (IS_SERVERLESS) {
+          try {
+            if (existingOrder) {
+              await runNeonQuery(
+                `UPDATE orders SET status = 'COMPLETED', transaction_ref = $1, payment_method = 'RAZORPAY', updated_at = NOW() WHERE id = $2`,
+                [razorpay_payment_id, existingOrder.id]
+              );
+            } else {
+              await runNeonQuery(
+                `INSERT INTO orders (id, user_id, order_type, course_id, amount, currency, status, payment_method, transaction_ref, receipt_url)
+                 VALUES ($1, $2, 'COURSE_PURCHASE', $3, $4, 'INR', 'COMPLETED', 'RAZORPAY', $5, $6)
+                 ON CONFLICT (id) DO UPDATE SET status = 'COMPLETED'`,
+                [internalOrderId, authUser.id, targetCourseId, course ? Number(course.price) : 249, razorpay_payment_id, `/api/billing/receipts/${internalOrderId}`]
+              );
+            }
+
+            const enrId = `enr-${authUser.id}-${targetCourseId}`;
+            await runNeonQuery(
+              `INSERT INTO enrollments (id, user_id, course_id, status, progress_percent)
+               VALUES ($1, $2, $3, 'ACTIVE', 0)
+               ON CONFLICT (id) DO UPDATE SET status = 'ACTIVE'`,
+              [enrId, authUser.id, targetCourseId]
+            );
+          } catch (neonVerifyErr) {
+            console.error('[verify-payment Neon error]', neonVerifyErr.message);
+          }
+        }
+
         ensureEnrollment(authUser.id, targetCourseId);
 
         // Send confirmation notification
