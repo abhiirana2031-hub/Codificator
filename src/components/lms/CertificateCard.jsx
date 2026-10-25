@@ -336,6 +336,7 @@ export default function CertificateCard({
 
         {/* Right Watermark Emblem Graphic */}
         <div
+          className="cert-emblem-wrapper"
           style={{
             position: 'absolute',
             right: 'clamp(24px, 4.5vw, 56px)',
@@ -349,7 +350,7 @@ export default function CertificateCard({
             userSelect: 'none'
           }}
         >
-          <div style={{ filter: 'drop-shadow(0 8px 24px rgba(16, 185, 129, 0.12))' }}>
+          <div className="cert-emblem-drop" style={{ filter: 'drop-shadow(0 8px 24px rgba(16, 185, 129, 0.12))' }}>
             <CodificatorEmblem size={200} opacity={0.92} />
           </div>
 
@@ -778,16 +779,16 @@ export default function CertificateCard({
       <style>{`
         @page {
           size: landscape;
-          margin: 0;
+          margin: 6mm;
         }
 
         @media print {
-          /* 1. Force strict single-page viewport dimensions & zero page margins */
+          /* 1. Reset root to standard 100% page dimensions */
           html, body {
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
@@ -831,14 +832,13 @@ export default function CertificateCard({
             border: none !important;
           }
 
-          /* 4. Disable animations & transitions that alter fixed positioning or cause layout lag */
+          /* 4. Disable animations & transitions in print */
           *, *::before, *::after {
-            animation-duration: 0s !important;
-            animation-delay: 0s !important;
-            transition-duration: 0s !important;
+            animation: none !important;
+            transition: none !important;
           }
 
-          /* 5. Flatten all ancestor containers so they occupy zero space */
+          /* 5. Flatten all ancestor containers */
           #root,
           .app-container,
           .max-width-wrapper,
@@ -848,10 +848,10 @@ export default function CertificateCard({
           .modal-container {
             margin: 0 !important;
             padding: 0 !important;
-            max-width: 100vw !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-height: 100vh !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 100% !important;
             min-height: 0 !important;
             border: none !important;
             box-shadow: none !important;
@@ -861,37 +861,36 @@ export default function CertificateCard({
             position: static !important;
           }
 
-          /* 6. Make the certificate canvas and all contents visible */
+          /* 6. Make certificate canvas and all contents visible */
           #printable-certificate,
           #printable-certificate * {
             visibility: visible !important;
           }
 
-          /* 7. Pixel-perfect, high-prestige single-page certificate canvas */
+          /* 7. Pixel-perfect, perfectly scaled single-page certificate canvas */
           #printable-certificate {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
             right: 0 !important;
             bottom: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
             min-height: 0 !important;
             aspect-ratio: auto !important;
             margin: 0 !important;
             box-sizing: border-box !important;
-            padding: clamp(26px, 4.2vh, 40px) clamp(32px, 4.5vw, 52px) !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
+            padding: 24px 34px !important;
+            border-radius: 6px !important;
             background: #ffffff !important;
             z-index: 999999 !important;
             
-            /* Professional credential double-border frame */
-            border: 12px solid #047857 !important;
-            outline: 2px solid #10b981 !important;
-            outline-offset: -7px !important;
+            /* Professional double border that cannot be cut off (contained in box) */
+            border: 6px solid #047857 !important;
+            box-shadow: inset 0 0 0 2px #ffffff, inset 0 0 0 4px #10b981 !important;
+            outline: none !important;
 
             display: flex !important;
             flex-direction: column !important;
@@ -910,19 +909,31 @@ export default function CertificateCard({
             print-color-adjust: exact !important;
           }
 
-          /* Inner element optimizations for crisp single-page fit */
+          /* 8. Fix emblem filter artifact (remove white box around emblem in print) */
+          .cert-emblem-wrapper,
+          .cert-emblem-drop {
+            filter: none !important;
+            box-shadow: none !important;
+          }
+          .cert-emblem-wrapper {
+            right: 32px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+          }
+
+          /* 9. Inner layout adjustments for crisp print typography */
           .cert-middle-section {
-            margin: clamp(10px, 1.8vh, 18px) 0 !important;
+            margin: 10px 0 8px !important;
           }
 
           .cert-metrics-row {
-            margin-top: clamp(10px, 1.6vh, 16px) !important;
+            margin-top: 12px !important;
           }
 
           .cert-citation {
-            font-size: 13px !important;
+            font-size: 12.5px !important;
             line-height: 1.45 !important;
-            max-width: 580px !important;
+            max-width: 540px !important;
           }
 
           .cert-bottom-section {
