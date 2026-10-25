@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { createOrder, verifySignature } from '../services/razorpayService.js';
 import { resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { runQuery, queryOne, queryAll, transaction } from '../db/db.js';
-import { queryOneNeon, queryAllNeon, runNeonQuery } from '../db/neon.js';
+import { queryOneNeon, runNeonQuery } from '../db/neon.js';
 import { ensureEnrollment } from '../services/progressionEngine.js';
 import { createNotification } from '../services/notificationService.js';
 import { PLANS } from '../services/billingService.js';
@@ -309,10 +309,62 @@ router.post('/verify-payment', async (req, res) => {
     const targetCourseId = courseId || (existingOrder ? existingOrder.course_id : null);
     const targetPlanId = planId || (existingOrder ? existingOrder.plan_id : null);
 
-    transaction(() => {
-      const timestamp = Date.now();
-      const internalOrderId = existingOrder ? existingOrder.id : `ord-${timestamp}-${Math.random().toString(36).substring(2, 6)}`;
+    const timestamp = Date.now();
+    const internalOrderId = existingOrder ? existingOrder.id : `ord-${timestamp}-${Math.random().toString(36).substring(2, 6)}`;
 
+    // On Vercel / serverless: execute async database operations against Neon PostgreSQL
+    if (IS_SERVERLESS) {
+      if (targetCourseId) {
+        try {
+          const course = await queryOneNeon('SELECT id, title, price FROM courses WHERE id = $1 OR slug = $2', [targetCourseId, targetCourseId]);
+          const courseTitle = course?.title || targetCourseId;
+
+          if (existingOrder) {
+            await runNeonQuery(
+              `UPDATE orders SET status = 'COMPLETED', transaction_ref = $1, payment_method = 'RAZORPAY', updated_at = NOW() WHERE id = $2`,
+              [razorpay_payment_id, existingOrder.id]
+            );
+          } else {
+            await runNeonQuery(
+              `INSERT INTO orders (id, user_id, order_type, course_id, amount, currency, status, payment_method, transaction_ref, receipt_url)
+               VALUES ($1, $2, 'COURSE_PURCHASE', $3, $4, 'INR', 'COMPLETED', 'RAZORPAY', $5, $6)
+               ON CONFLICT (id) DO UPDATE SET status = 'COMPLETED'`,
+              [internalOrderId, authUser.id, targetCourseId, course ? Number(course.price) : 249, razorpay_payment_id, `/api/billing/receipts/${internalOrderId}`]
+            );
+          }
+
+          const enrId = `enr-${authUser.id}-${targetCourseId}`;
+          await runNeonQuery(
+            `INSERT INTO enrollments (id, user_id, course_id, status, progress_percent)
+             VALUES ($1, $2, $3, 'ACTIVE', 0)
+             ON CONFLICT (id) DO UPDATE SET status = 'ACTIVE'`,
+            [enrId, authUser.id, targetCourseId]
+          );
+
+          createNotification({
+            userId: authUser.id,
+            title: 'Course Access Unlocked',
+            message: `Your payment was verified successfully. You now have permanent lifetime access to "${courseTitle}".`,
+            type: 'COURSE',
+            linkUrl: `/#learn/${targetCourseId}`
+          });
+        } catch (neonVerifyErr) {
+          console.error('[verify-payment Neon error]', neonVerifyErr.message);
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Payment verified and course access granted successfully!',
+        payment_id: razorpay_payment_id,
+        order_id: razorpay_order_id,
+        internal_order_id: internalOrderId,
+        courseId: targetCourseId
+      });
+    }
+
+    // Local development SQLite path
+    transaction(() => {
       if (targetCourseId) {
         const course = queryOne('SELECT id, title, price FROM courses WHERE id = ? OR slug = ?', [targetCourseId, targetCourseId]);
         const courseTitle = course?.title || targetCourseId;
@@ -354,35 +406,6 @@ router.post('/verify-payment', async (req, res) => {
             discountAmount: existingOrder.discount_amount || 0,
             finalPrice: existingOrder.amount
           });
-        }
-
-        // Atomically create persistent enrollment
-        if (IS_SERVERLESS) {
-          try {
-            if (existingOrder) {
-              await runNeonQuery(
-                `UPDATE orders SET status = 'COMPLETED', transaction_ref = $1, payment_method = 'RAZORPAY', updated_at = NOW() WHERE id = $2`,
-                [razorpay_payment_id, existingOrder.id]
-              );
-            } else {
-              await runNeonQuery(
-                `INSERT INTO orders (id, user_id, order_type, course_id, amount, currency, status, payment_method, transaction_ref, receipt_url)
-                 VALUES ($1, $2, 'COURSE_PURCHASE', $3, $4, 'INR', 'COMPLETED', 'RAZORPAY', $5, $6)
-                 ON CONFLICT (id) DO UPDATE SET status = 'COMPLETED'`,
-                [internalOrderId, authUser.id, targetCourseId, course ? Number(course.price) : 249, razorpay_payment_id, `/api/billing/receipts/${internalOrderId}`]
-              );
-            }
-
-            const enrId = `enr-${authUser.id}-${targetCourseId}`;
-            await runNeonQuery(
-              `INSERT INTO enrollments (id, user_id, course_id, status, progress_percent)
-               VALUES ($1, $2, $3, 'ACTIVE', 0)
-               ON CONFLICT (id) DO UPDATE SET status = 'ACTIVE'`,
-              [enrId, authUser.id, targetCourseId]
-            );
-          } catch (neonVerifyErr) {
-            console.error('[verify-payment Neon error]', neonVerifyErr.message);
-          }
         }
 
         ensureEnrollment(authUser.id, targetCourseId);
