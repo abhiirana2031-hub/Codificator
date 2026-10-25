@@ -1,5 +1,6 @@
 import express from 'express';
 import { queryAll, queryOne } from '../db/db.js';
+import { queryAllNeon, queryOneNeon } from '../db/neon.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import {
   getInstructorAnalyticsOverview,
@@ -13,7 +14,101 @@ import {
 const router = express.Router();
 
 // System-wide overview analytics for Admins & Operators
-router.get('/overview', requireAuth, requireRole('ADMIN', 'OPERATOR'), (req, res) => {
+router.get('/overview', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const qVal = async (sql, params = []) => {
+        try {
+          const row = await queryOneNeon(sql, params);
+          if (!row) return 0;
+          return Number(row.count ?? row.avg_score ?? Object.values(row)[0] ?? 0);
+        } catch (e) {
+          return 0;
+        }
+      };
+
+      const totalCourses = await qVal('SELECT COUNT(*) as count FROM courses');
+      const publishedCourses = await qVal('SELECT COUNT(*) as count FROM courses WHERE is_published = true');
+      const totalStudents = await qVal("SELECT COUNT(*) as count FROM users WHERE role = 'STUDENT'");
+      const totalEnrollments = await qVal('SELECT COUNT(*) as count FROM enrollments');
+      const completedEnrollments = await qVal("SELECT COUNT(*) as count FROM enrollments WHERE status = 'COMPLETED'");
+      const courseCompletionRate = totalEnrollments > 0
+        ? Math.round((completedEnrollments / totalEnrollments) * 1000) / 10
+        : 0;
+
+      const activeLearners = await qVal(
+        `SELECT COUNT(DISTINCT user_id) as count FROM lesson_progress WHERE updated_at >= NOW() - INTERVAL '7 days'`
+      );
+      const inactiveLearners = await qVal(
+        `SELECT COUNT(DISTINCT e.user_id) as count FROM enrollments e
+         WHERE e.id NOT IN (SELECT DISTINCT enrollment_id FROM lesson_progress WHERE updated_at >= NOW() - INTERVAL '14 days')`
+      );
+      const fallingBehind = await qVal(
+        `SELECT COUNT(*) as count FROM enrollments WHERE enrolled_at <= NOW() - INTERVAL '3 days' AND progress_percent < 20`
+      );
+
+      const avgQuiz = await qVal('SELECT AVG(percentage) as avg_score FROM quiz_attempts');
+      const avgQuizScore = Math.round(avgQuiz * 10) / 10;
+
+      const totalSubmissions = await qVal('SELECT COUNT(*) as count FROM assignment_submissions');
+      const approvedSubmissions = await qVal("SELECT COUNT(*) as count FROM assignment_submissions WHERE status = 'APPROVED'");
+      const pendingSubmissions = await qVal("SELECT COUNT(*) as count FROM assignment_submissions WHERE status = 'SUBMITTED'");
+      const certificatesIssued = await qVal('SELECT COUNT(*) as count FROM certificates');
+
+      let courseBreakdown = [];
+      try {
+        const courseBreakdownRaw = await queryAllNeon(
+          `SELECT c.id, c.title, c.category, c.is_published,
+                  (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) as enrolled_count,
+                  (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id AND status = 'COMPLETED') as completed_count,
+                  (SELECT AVG(progress_percent) FROM enrollments WHERE course_id = c.id) as avg_progress
+           FROM courses c
+           ORDER BY enrolled_count DESC`
+        );
+        courseBreakdown = courseBreakdownRaw.map(c => ({
+          ...c,
+          is_published: Boolean(c.is_published),
+          enrolled_count: Number(c.enrolled_count || 0),
+          completed_count: Number(c.completed_count || 0),
+          avg_progress: c.avg_progress ? Math.round(Number(c.avg_progress) * 10) / 10 : 0,
+          completion_rate: Number(c.enrolled_count) > 0 ? Math.round((Number(c.completed_count) / Number(c.enrolled_count)) * 1000) / 10 : 0
+        }));
+      } catch (cbErr) {
+        console.warn('[analyticsRoutes] Course breakdown query error:', cbErr.message);
+      }
+
+      const progressBuckets = {
+        '0-25%': await qVal('SELECT COUNT(*) as count FROM enrollments WHERE progress_percent BETWEEN 0 AND 25'),
+        '26-50%': await qVal('SELECT COUNT(*) as count FROM enrollments WHERE progress_percent > 25 AND progress_percent <= 50'),
+        '51-75%': await qVal('SELECT COUNT(*) as count FROM enrollments WHERE progress_percent > 50 AND progress_percent <= 75'),
+        '76-100%': await qVal('SELECT COUNT(*) as count FROM enrollments WHERE progress_percent > 75')
+      };
+
+      return res.json({
+        metrics: {
+          totalCourses,
+          publishedCourses,
+          totalStudents,
+          totalEnrollments,
+          completedEnrollments,
+          courseCompletionRate,
+          activeLearners,
+          inactiveLearners,
+          fallingBehind,
+          avgQuizScore,
+          totalSubmissions,
+          approvedSubmissions,
+          pendingSubmissions,
+          certificatesIssued
+        },
+        progressBuckets,
+        courseBreakdown
+      });
+    } catch (neonErr) {
+      console.error('[analyticsRoutes Neon error]', neonErr);
+    }
+  }
   const totalCourses = queryOne('SELECT COUNT(*) as count FROM courses').count;
   const publishedCourses = queryOne('SELECT COUNT(*) as count FROM courses WHERE is_published = 1').count;
   const totalStudents = queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'STUDENT'").count;

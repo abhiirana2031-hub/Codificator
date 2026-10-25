@@ -1,13 +1,52 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
+import { queryAllNeon, queryOneNeon } from '../db/neon.js';
 import { requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { canManageCourse } from '../services/courseAuthorization.js';
 
 const router = express.Router();
 
 // Get complete curriculum for course builder (Restricted to Course Operators, Admins, and Instructors)
-router.get('/courses/:courseId/curriculum', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INSTRUCTOR'), (req, res) => {
+router.get('/courses/:courseId/curriculum', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INSTRUCTOR'), async (req, res) => {
   const { courseId } = req.params;
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon('SELECT * FROM courses WHERE id = $1 OR slug = $2', [courseId, courseId]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      const modules = await queryAllNeon('SELECT * FROM modules WHERE course_id = $1 ORDER BY order_index ASC', [course.id]);
+      const lessons = await queryAllNeon('SELECT * FROM lessons WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1) ORDER BY order_index ASC', [course.id]);
+      const quizzes = await queryAllNeon('SELECT * FROM quizzes WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)', [course.id]);
+      const assignments = await queryAllNeon('SELECT * FROM assignments WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)', [course.id]);
+
+      const enhancedModules = modules.map(m => {
+        const modLessons = lessons.filter(l => l.module_id === m.id);
+        const quiz = quizzes.find(q => q.module_id === m.id) || null;
+        const assignment = assignments.find(a => a.module_id === m.id) || null;
+        return {
+          ...m,
+          is_published: Boolean(m.is_published),
+          lessons: modLessons.map(l => ({
+            ...l,
+            is_mandatory: Boolean(l.is_mandatory),
+            resources: []
+          })),
+          quiz,
+          assignment
+        };
+      });
+
+      return res.json({
+        course,
+        modules: enhancedModules
+      });
+    } catch (neonErr) {
+      console.error('[curriculumRoutes Neon error]', neonErr);
+    }
+  }
+
   const course = queryOne('SELECT * FROM courses WHERE id = ?', [courseId]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
 

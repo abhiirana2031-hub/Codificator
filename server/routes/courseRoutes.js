@@ -1,6 +1,6 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
-import { queryAllNeon, queryOneNeon } from '../db/neon.js';
+import { queryAllNeon, queryOneNeon, runNeonQuery } from '../db/neon.js';
 import { parseAuthUser, resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { ensureEnrollment } from '../services/progressionEngine.js';
 import { canManageCourse, validateCourseForPublishing } from '../services/courseAuthorization.js';
@@ -955,36 +955,97 @@ router.post('/:id/duplicate', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INS
   return res.status(201).json({ course: duplicated });
 });
 
-// Delete course (Safe Deletion Check!)
-router.delete('/:id', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INSTRUCTOR'), (req, res) => {
-  const check = canManageCourse(req.params.id, req.user);
-  if (!check.allowed) return res.status(check.status).json({ error: check.error });
+// Delete course (Safe Deletion Check & Neon PostgreSQL Sync!)
+router.delete('/:id', requireAuth, requireRole('ADMIN', 'OPERATOR', 'INSTRUCTOR'), async (req, res) => {
+  const courseId = req.params.id;
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 
-  const course = queryOne('SELECT * FROM courses WHERE id = ?', [req.params.id]);
-  if (!course) return res.status(404).json({ error: 'Course not found' });
-
-  // Safe deletion rule: Prevent deletion if any enrolled student has completed progress
-  const studentWithProgress = queryOne(
-    `SELECT lp.id FROM lesson_progress lp
-     JOIN lessons l ON lp.lesson_id = l.id
-     JOIN modules m ON l.module_id = m.id
-     WHERE m.course_id = ? AND (lp.status = 'COMPLETED' OR lp.last_playback_position > 0)
-     LIMIT 1`,
-    [req.params.id]
-  );
-
-  if (studentWithProgress && req.query.force !== 'true') {
-    return res.status(400).json({
-      error: 'Cannot delete course with active student progress. Deleting will corrupt enrolled student records. Archive or unpublish the course instead, or provide ?force=true to override.'
-    });
+  let course = null;
+  if (IS_SERVERLESS) {
+    course = await queryOneNeon('SELECT * FROM courses WHERE id = $1', [courseId]);
+  } else {
+    course = queryOne('SELECT * FROM courses WHERE id = ?', [courseId]);
   }
 
-  transaction(() => {
-    runQuery('DELETE FROM courses WHERE id = ?', [req.params.id]);
-    logAudit(req.user.id, 'COURSE_DELETED', 'COURSE', req.params.id, { title: course.title });
-  });
+  if (!course) return res.status(404).json({ error: 'Course not found' });
 
-  return res.json({ success: true, message: `Course "${course.title}" was deleted.` });
+  // Safe deletion rule: Prevent deletion if any enrolled student has completed progress (unless forced)
+  if (req.query.force !== 'true') {
+    let studentWithProgress = null;
+    if (IS_SERVERLESS) {
+      studentWithProgress = await queryOneNeon(
+        `SELECT lp.id FROM lesson_progress lp
+         JOIN lessons l ON lp.lesson_id = l.id
+         JOIN modules m ON l.module_id = m.id
+         WHERE m.course_id = $1 AND (lp.status = 'COMPLETED' OR lp.last_playback_position > 0)
+         LIMIT 1`,
+        [courseId]
+      );
+    } else {
+      studentWithProgress = queryOne(
+        `SELECT lp.id FROM lesson_progress lp
+         JOIN lessons l ON lp.lesson_id = l.id
+         JOIN modules m ON l.module_id = m.id
+         WHERE m.course_id = ? AND (lp.status = 'COMPLETED' OR lp.last_playback_position > 0)
+         LIMIT 1`,
+        [courseId]
+      );
+    }
+
+    if (studentWithProgress) {
+      return res.status(400).json({
+        error: 'Cannot delete course with active student progress. Deleting will corrupt enrolled student records. Archive or unpublish the course instead, or provide ?force=true to override.'
+      });
+    }
+  }
+
+  // Always delete from Neon Cloud PostgreSQL
+  try {
+    const safeRunNeon = async (sql, params) => {
+      try { await runNeonQuery(sql, params); } catch (e) { /* ignore */ }
+    };
+    await safeRunNeon('DELETE FROM certificates WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM coupon_redemptions WHERE course_id = $1', [courseId]);
+    await safeRunNeon('UPDATE orders SET course_id = NULL WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM course_entitlements WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM lesson_bookmarks WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM lesson_notes WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM coding_submissions WHERE exercise_id IN (SELECT id FROM coding_exercises WHERE course_id = $1)', [courseId]);
+    await safeRunNeon('DELETE FROM exercise_test_cases WHERE exercise_id IN (SELECT id FROM coding_exercises WHERE course_id = $1)', [courseId]);
+    await safeRunNeon('DELETE FROM coding_exercises WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM lesson_resources WHERE lesson_id IN (SELECT id FROM lessons WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1))', [courseId]);
+    await safeRunNeon('DELETE FROM lesson_progress WHERE lesson_id IN (SELECT id FROM lessons WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1))', [courseId]);
+    await safeRunNeon('DELETE FROM lessons WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)', [courseId]);
+    await safeRunNeon('DELETE FROM quiz_answers WHERE quiz_id IN (SELECT id FROM quizzes WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1))', [courseId]);
+    await safeRunNeon('DELETE FROM quiz_attempts WHERE quiz_id IN (SELECT id FROM quizzes WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1))', [courseId]);
+    await safeRunNeon('DELETE FROM quiz_options WHERE question_id IN (SELECT id FROM quiz_questions WHERE quiz_id IN (SELECT id FROM quizzes WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)))', [courseId]);
+    await safeRunNeon('DELETE FROM quiz_questions WHERE quiz_id IN (SELECT id FROM quizzes WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1))', [courseId]);
+    await safeRunNeon('DELETE FROM quizzes WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)', [courseId]);
+    await safeRunNeon('DELETE FROM assignment_submissions WHERE assignment_id IN (SELECT id FROM assignments WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1))', [courseId]);
+    await safeRunNeon('DELETE FROM assignments WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)', [courseId]);
+    await safeRunNeon('DELETE FROM module_progress WHERE module_id IN (SELECT id FROM modules WHERE course_id = $1)', [courseId]);
+    await safeRunNeon('DELETE FROM modules WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM enrollments WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM course_instructors WHERE course_id = $1', [courseId]);
+    await safeRunNeon('DELETE FROM courses WHERE id = $1', [courseId]);
+    console.log(`[Neon] Course ${courseId} and all associated records permanently deleted from Neon.`);
+  } catch (neonDelErr) {
+    console.error('⚠️ [Neon course deletion error]:', neonDelErr.message);
+  }
+
+  // Also delete from local SQLite if running in local environment
+  if (!IS_SERVERLESS) {
+    try {
+      transaction(() => {
+        runQuery('DELETE FROM courses WHERE id = ?', [courseId]);
+        logAudit(req.user.id, 'COURSE_DELETED', 'COURSE', courseId, { title: course.title });
+      });
+    } catch (sqliteErr) {
+      console.warn('SQLite course deletion note:', sqliteErr.message);
+    }
+  }
+
+  return res.json({ success: true, message: `Course "${course.title}" was permanently deleted.` });
 });
 
 // Enroll current student in course

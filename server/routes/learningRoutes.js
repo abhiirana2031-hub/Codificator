@@ -1,7 +1,7 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery } from '../db/db.js';
 import { queryOneNeon, queryAllNeon } from '../db/neon.js';
-import { parseAuthUser, requireAuth } from '../middleware/auth.js';
+import { parseAuthUser, resolveAuthUser, requireAuth } from '../middleware/auth.js';
 import {
   ensureEnrollment,
   isModuleUnlocked,
@@ -242,10 +242,66 @@ router.get('/:courseId/curriculum', requireAuth, async (req, res) => {
 });
 
 // Get lesson details (Public for free previews, gated for paid lessons)
-router.get('/:courseId/lessons/:lessonId', (req, res) => {
+router.get('/:courseId/lessons/:lessonId', async (req, res) => {
   const { courseId, lessonId } = req.params;
-  const user = parseAuthUser(req);
+  const user = (await resolveAuthUser(req)) || parseAuthUser(req);
   const userId = user?.id;
+
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon('SELECT * FROM courses WHERE id = $1 OR slug = $2', [courseId, courseId]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      const lesson = await queryOneNeon('SELECT * FROM lessons WHERE id = $1', [lessonId]);
+      if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+      const mod = await queryOneNeon('SELECT * FROM modules WHERE id = $1 AND course_id = $2', [lesson.module_id, course.id]);
+      if (!mod) return res.status(404).json({ error: 'Lesson does not belong to specified course' });
+
+      const siblingLessons = await queryAllNeon(
+        'SELECT id, title, order_index FROM lessons WHERE module_id = $1 ORDER BY order_index ASC',
+        [mod.id]
+      );
+      const currentIndex = siblingLessons.findIndex(l => l.id === lesson.id);
+      const prevLesson = currentIndex > 0 ? siblingLessons[currentIndex - 1] : null;
+      const nextLesson = currentIndex < siblingLessons.length - 1 ? siblingLessons[currentIndex + 1] : null;
+
+      const resources = await queryAllNeon('SELECT * FROM lesson_resources WHERE lesson_id = $1', [lesson.id]);
+      const quiz = await queryOneNeon('SELECT id, title, description, passing_percentage, time_limit_minutes FROM quizzes WHERE module_id = $1', [mod.id]);
+      const assignment = await queryOneNeon('SELECT id, title, instructions, max_marks, due_date FROM assignments WHERE module_id = $1', [mod.id]);
+
+      let progress = null;
+      if (userId) {
+        const enr = await queryOneNeon('SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2', [userId, course.id]);
+        if (enr) {
+          progress = await queryOneNeon('SELECT * FROM lesson_progress WHERE enrollment_id = $1 AND lesson_id = $2', [enr.id, lesson.id]);
+        }
+      }
+
+      return res.json({
+        lesson: {
+          ...lesson,
+          content_markdown: lesson.content_markdown || lesson.text_content,
+          text_content: lesson.content_markdown || lesson.text_content,
+          is_mandatory: Boolean(lesson.is_mandatory),
+          is_preview: Boolean(lesson.is_preview),
+          resources,
+          progress: progress || {
+            status: 'IN_PROGRESS',
+            last_playback_position: 0,
+            watched_progress_percent: 0
+          },
+          prev_lesson: prevLesson,
+          next_lesson: nextLesson,
+          quiz,
+          assignment
+        }
+      });
+    } catch (err) {
+      console.error('[learningRoutes lesson Neon error]', err);
+    }
+  }
 
   const course = queryOne('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
   if (!course) return res.status(404).json({ error: 'Course not found' });

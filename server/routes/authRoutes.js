@@ -476,51 +476,126 @@ function cascadeDeleteUser(targetId) {
   runQuery('DELETE FROM users WHERE id = ?', [targetId]);
 }
 
-// 12. Admin: Delete single user
-router.delete('/users/:id', requireAuth, requireRole('ADMIN'), (req, res) => {
+export async function cascadeDeleteUserNeon(targetId) {
+  const safeRunNeon = async (sql, params) => {
+    try {
+      await runNeonQuery(sql, params);
+    } catch (err) {
+      // safe ignore
+    }
+  };
+
+  await safeRunNeon('UPDATE courses SET instructor_id = NULL WHERE instructor_id = $1', [targetId]);
+  await safeRunNeon('UPDATE assignment_submissions SET reviewer_id = NULL WHERE reviewer_id = $1', [targetId]);
+  await safeRunNeon('UPDATE audit_logs SET user_id = NULL WHERE user_id = $1', [targetId]);
+  await safeRunNeon('UPDATE coupons SET created_by = NULL WHERE created_by = $1', [targetId]);
+  await safeRunNeon('UPDATE course_entitlements SET granted_by = NULL WHERE granted_by = $1', [targetId]);
+
+  await safeRunNeon('DELETE FROM notifications WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM certificates WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM coupon_redemptions WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM orders WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM subscriptions WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM course_entitlements WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM password_resets WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM lesson_bookmarks WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM lesson_notes WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM coding_submissions WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM assignment_submissions WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM quiz_attempts WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM lesson_progress WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM module_progress WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM enrollments WHERE user_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM course_instructors WHERE instructor_id = $1', [targetId]);
+  await safeRunNeon('DELETE FROM users WHERE id = $1', [targetId]);
+  console.log(`[Neon] User ${targetId} permanently deleted from Neon.`);
+}
+
+// 12. Admin & Operator: Delete single user
+router.delete('/users/:id', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
   const targetId = req.params.id;
   if (targetId === req.user.id) {
     return res.status(400).json({ error: 'You cannot delete your own administrative account' });
   }
 
-  const user = queryOne('SELECT id, email, name FROM users WHERE id = ?', [targetId]);
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  let user = null;
+  if (IS_SERVERLESS) {
+    user = await queryOneNeon('SELECT id, email, name FROM users WHERE id = $1', [targetId]);
+  } else {
+    user = queryOne('SELECT id, email, name FROM users WHERE id = ?', [targetId]);
+  }
+
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  transaction(() => {
-    cascadeDeleteUser(targetId);
-    logAudit(req.user.id, 'USER_DELETED', 'user', targetId, { email: user.email, name: user.name });
-  });
+  // Always delete from Neon Cloud PostgreSQL
+  try {
+    await cascadeDeleteUserNeon(targetId);
+  } catch (neonErr) {
+    console.error('⚠️ [Neon user deletion error]:', neonErr.message);
+  }
+
+  // Also delete from local SQLite if running locally
+  if (!IS_SERVERLESS) {
+    try {
+      transaction(() => {
+        cascadeDeleteUser(targetId);
+        logAudit(req.user.id, 'USER_DELETED', 'user', targetId, { email: user.email, name: user.name });
+      });
+    } catch (sqliteErr) {
+      console.warn('SQLite user deletion note:', sqliteErr.message);
+    }
+  }
 
   return res.json({ success: true, message: `User "${user.email}" was successfully deleted.` });
 });
 
-// 13. Admin: Bulk delete users
-router.post('/users/bulk-delete', requireAuth, requireRole('ADMIN'), (req, res) => {
+// 13. Admin & Operator: Bulk delete users
+router.post('/users/bulk-delete', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
   const { userIds } = req.body;
   if (!Array.isArray(userIds) || userIds.length === 0) {
     return res.status(400).json({ error: 'userIds array is required and must not be empty.' });
   }
 
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
   let deletedCount = 0;
   let skippedCount = 0;
 
-  transaction(() => {
-    for (const targetId of userIds) {
-      if (targetId === req.user.id) {
-        skippedCount++;
-        continue;
-      }
-
-      const user = queryOne('SELECT id, email FROM users WHERE id = ?', [targetId]);
-      if (!user) continue;
-
-      cascadeDeleteUser(targetId);
-      logAudit(req.user.id, 'USER_BULK_DELETED', 'user', targetId, { email: user.email });
-      deletedCount++;
+  for (const targetId of userIds) {
+    if (targetId === req.user.id) {
+      skippedCount++;
+      continue;
     }
-  });
+
+    let user = null;
+    if (IS_SERVERLESS) {
+      user = await queryOneNeon('SELECT id, email FROM users WHERE id = $1', [targetId]);
+    } else {
+      user = queryOne('SELECT id, email FROM users WHERE id = ?', [targetId]);
+    }
+
+    if (!user) {
+      skippedCount++;
+      continue;
+    }
+
+    try {
+      await cascadeDeleteUserNeon(targetId);
+    } catch (neonErr) {
+      console.error('⚠️ [Neon bulk delete error]:', neonErr.message);
+    }
+
+    if (!IS_SERVERLESS) {
+      try {
+        cascadeDeleteUser(targetId);
+        logAudit(req.user.id, 'USER_BULK_DELETED', 'user', targetId, { email: user.email });
+      } catch (e) { /* ignore */ }
+    }
+
+    deletedCount++;
+  }
 
   return res.json({ success: true, deletedCount, skippedCount });
 });
