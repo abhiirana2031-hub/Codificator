@@ -1,6 +1,6 @@
 import express from 'express';
 import { queryAll, queryOne, runQuery } from '../db/db.js';
-import { queryOneNeon, queryAllNeon } from '../db/neon.js';
+import { queryOneNeon, queryAllNeon, runNeonQuery } from '../db/neon.js';
 import { parseAuthUser, resolveAuthUser, requireAuth } from '../middleware/auth.js';
 import {
   ensureEnrollment,
@@ -417,10 +417,73 @@ router.get('/:courseId/lessons/:lessonId', async (req, res) => {
 });
 
 // Update video playback progress
-router.post('/:courseId/lessons/:lessonId/video-progress', requireAuth, (req, res) => {
+router.post('/:courseId/lessons/:lessonId/video-progress', requireAuth, async (req, res) => {
   const { courseId, lessonId } = req.params;
   const { positionSeconds, durationSeconds } = req.body;
   const userId = req.user.id;
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      let enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, course.id]);
+      if (!enrollment) {
+        const enrId = `enr-${userId}-${course.id}`;
+        await runNeonQuery(
+          'INSERT INTO enrollments (id, user_id, course_id, status, progress_percent) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING',
+          [enrId, userId, course.id, 'ACTIVE', 0]
+        );
+        enrollment = { id: enrId, user_id: userId, course_id: course.id };
+      }
+
+      const pos = Number(positionSeconds) || 0;
+      const dur = Number(durationSeconds) || 0;
+      const pct = dur > 0 ? Math.min(100, Math.round((pos / dur) * 100)) : 0;
+      const status = pct >= 90 ? 'COMPLETED' : 'IN_PROGRESS';
+
+      const existing = await queryOneNeon(
+        'SELECT * FROM lesson_progress WHERE enrollment_id = ? AND lesson_id = ?',
+        [enrollment.id, lessonId]
+      );
+      const progressId = existing ? existing.id : `lp-${enrollment.id}-${lessonId}`;
+
+      if (existing) {
+        await runNeonQuery(
+          `UPDATE lesson_progress 
+           SET last_playback_position = ?,
+               video_duration = ?,
+               watched_progress_percent = GREATEST(watched_progress_percent, ?),
+               status = CASE WHEN status = 'COMPLETED' THEN 'COMPLETED' ELSE ? END,
+               completed_at = CASE WHEN (? = 'COMPLETED' OR status = 'COMPLETED') AND completed_at IS NULL THEN CURRENT_TIMESTAMP ELSE completed_at END,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [pos, dur, pct, status, status, existing.id]
+        );
+      } else {
+        await runNeonQuery(
+          `INSERT INTO lesson_progress (
+            id, enrollment_id, lesson_id, user_id, status, last_playback_position, video_duration, watched_progress_percent, completed_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'COMPLETED' THEN CURRENT_TIMESTAMP ELSE NULL END, CURRENT_TIMESTAMP)`,
+          [progressId, enrollment.id, lessonId, userId, status, pos, dur, pct, status]
+        );
+      }
+
+      return res.json({
+        success: true,
+        progress: {
+          id: progressId,
+          last_playback_position: pos,
+          video_duration: dur,
+          watched_progress_percent: pct,
+          status
+        }
+      });
+    } catch (err) {
+      console.error('[video-progress Neon error]', err);
+    }
+  }
 
   const course = queryOne('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
@@ -454,10 +517,72 @@ router.post('/:courseId/lessons/:lessonId/video-progress', requireAuth, (req, re
 });
 
 // Update text reading progress (scroll/reading percentage without prematurely marking complete)
-router.post('/:courseId/lessons/:lessonId/reading-progress', requireAuth, (req, res) => {
+router.post('/:courseId/lessons/:lessonId/reading-progress', requireAuth, async (req, res) => {
   const { courseId, lessonId } = req.params;
   const { readingPercent } = req.body;
   const userId = req.user.id;
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      let enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, course.id]);
+      if (!enrollment) {
+        const enrId = `enr-${userId}-${course.id}`;
+        await runNeonQuery(
+          'INSERT INTO enrollments (id, user_id, course_id, status, progress_percent) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING',
+          [enrId, userId, course.id, 'ACTIVE', 0]
+        );
+        enrollment = { id: enrId, user_id: userId, course_id: course.id };
+      }
+
+      const lesson = await queryOneNeon('SELECT * FROM lessons WHERE id = ?', [lessonId]);
+      if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+      const pct = Math.min(100, Math.max(0, Number(readingPercent) || 0));
+      const existing = await queryOneNeon(
+        'SELECT * FROM lesson_progress WHERE enrollment_id = ? AND lesson_id = ?',
+        [enrollment.id, lessonId]
+      );
+
+      let status = (existing && existing.status === 'COMPLETED') ? 'COMPLETED' : (pct >= 90 ? 'COMPLETED' : 'IN_PROGRESS');
+      const progressId = existing ? existing.id : `lp-${enrollment.id}-${lessonId}`;
+
+      if (existing) {
+        await runNeonQuery(
+          `UPDATE lesson_progress 
+           SET watched_progress_percent = GREATEST(watched_progress_percent, ?),
+               status = ?,
+               completed_at = CASE WHEN ? = 'COMPLETED' AND completed_at IS NULL THEN CURRENT_TIMESTAMP ELSE completed_at END,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [pct, status, status, existing.id]
+        );
+      } else {
+        await runNeonQuery(
+          `INSERT INTO lesson_progress (
+            id, enrollment_id, lesson_id, user_id, status, watched_progress_percent, completed_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, CASE WHEN ? = 'COMPLETED' THEN CURRENT_TIMESTAMP ELSE NULL END, CURRENT_TIMESTAMP)`,
+          [progressId, enrollment.id, lessonId, userId, status, pct, status]
+        );
+      }
+
+      return res.json({
+        success: true,
+        progress: {
+          id: progressId,
+          enrollment_id: enrollment.id,
+          lesson_id: lessonId,
+          status,
+          watched_progress_percent: pct
+        }
+      });
+    } catch (err) {
+      console.error('[reading-progress Neon error]', err);
+    }
+  }
 
   const course = queryOne('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
@@ -493,9 +618,60 @@ router.post('/:courseId/lessons/:lessonId/reading-progress', requireAuth, (req, 
 });
 
 // Complete Lesson manually (e.g. for text, notes, user action)
-router.post('/:courseId/lessons/:lessonId/complete', requireAuth, (req, res) => {
+router.post('/:courseId/lessons/:lessonId/complete', requireAuth, async (req, res) => {
   const { courseId, lessonId } = req.params;
   const userId = req.user.id;
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    try {
+      const course = await queryOneNeon('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      let enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, course.id]);
+      if (!enrollment) {
+        const enrId = `enr-${userId}-${course.id}`;
+        await runNeonQuery(
+          'INSERT INTO enrollments (id, user_id, course_id, status, progress_percent) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING',
+          [enrId, userId, course.id, 'ACTIVE', 0]
+        );
+        enrollment = { id: enrId, user_id: userId, course_id: course.id };
+      }
+
+      const existing = await queryOneNeon(
+        'SELECT * FROM lesson_progress WHERE enrollment_id = ? AND lesson_id = ?',
+        [enrollment.id, lessonId]
+      );
+      const progressId = existing ? existing.id : `lp-${enrollment.id}-${lessonId}`;
+
+      if (existing) {
+        await runNeonQuery(
+          `UPDATE lesson_progress 
+           SET status = 'COMPLETED',
+               watched_progress_percent = 100,
+               completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [existing.id]
+        );
+      } else {
+        await runNeonQuery(
+          `INSERT INTO lesson_progress (
+            id, enrollment_id, lesson_id, user_id, status, watched_progress_percent, completed_at, updated_at
+          ) VALUES (?, ?, ?, ?, 'COMPLETED', 100, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [progressId, enrollment.id, lessonId, userId]
+        );
+      }
+
+      return res.json({
+        success: true,
+        message: 'Lesson marked as completed',
+        progression: { is_lesson_completed: true, status: 'COMPLETED' }
+      });
+    } catch (err) {
+      console.error('[complete lesson Neon error]', err);
+    }
+  }
 
   const course = queryOne('SELECT * FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
