@@ -1,0 +1,27 @@
+# Hardened Multi-Runtime Sandbox Container for Codificators
+# Base image: Alpine Linux with Python 3 and Node.js
+FROM alpine:3.20
+
+# Install minimal runtimes and remove package manager cache
+RUN apk add --no-cache python3 nodejs su-exec \
+    && rm -rf /var/cache/apk/* /tmp/*
+
+# Create unprivileged sandbox user and group
+RUN addgroup -g 10001 -S sandboxgroup && \
+    adduser -u 10001 -S sandboxuser -G sandboxgroup -h /home/sandboxuser
+
+# Prepare read-only root and working directory
+WORKDIR /sandbox
+RUN chown -R sandboxuser:sandboxgroup /sandbox /home/sandboxuser
+
+# Switch to non-root user
+USER sandboxuser
+
+# Environment scrubbing: no host variables passed
+ENV PATH="/usr/local/bin:/usr/bin:/bin" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    NODE_ENV=production
+
+# Default entrypoint
+CMD ["python3", "--version"]

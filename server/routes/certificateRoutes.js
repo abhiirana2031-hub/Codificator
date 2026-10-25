@@ -1,0 +1,111 @@
+import express from 'express';
+import { queryAll, queryOne } from '../db/db.js';
+import { requireAuth } from '../middleware/auth.js';
+import { issueCertificateIfEligible } from '../services/progressionEngine.js';
+import { createNotification } from '../services/notificationService.js';
+
+const router = express.Router();
+
+// List user's earned certificates
+router.get('/my', requireAuth, (req, res) => {
+  const certs = queryAll(
+    `SELECT cert.*, c.title as course_title, c.thumbnail as course_thumbnail,
+            u.name as student_name, u.email as student_email
+     FROM certificates cert
+     JOIN courses c ON cert.course_id = c.id
+     JOIN users u ON cert.user_id = u.id
+     WHERE cert.user_id = ?
+     ORDER BY cert.issue_date DESC`,
+    [req.user.id]
+  );
+
+  return res.json({ certificates: certs });
+});
+
+// Claim certificate for a completed course
+router.post('/claim/:courseId', requireAuth, (req, res) => {
+  const { courseId } = req.params;
+  const enrollment = queryOne(
+    'SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?',
+    [req.user.id, courseId]
+  );
+
+  if (!enrollment) {
+    return res.status(404).json({ error: 'Enrollment not found.' });
+  }
+
+  const cert = issueCertificateIfEligible(enrollment.id);
+  if (!cert) {
+    const unpassedQuiz = queryOne(
+      `SELECT q.title, q.passing_percentage FROM quizzes q
+       JOIN modules m ON q.module_id = m.id
+       WHERE m.course_id = ? AND q.is_required = 1
+       AND NOT EXISTS (
+         SELECT 1 FROM quiz_attempts qa
+         WHERE qa.quiz_id = q.id AND qa.enrollment_id = ? AND qa.is_passed = 1 AND qa.percentage >= 75.0
+       )`,
+      [courseId, enrollment.id]
+    );
+
+    let errorMsg = 'Course completion requirements have not been fully satisfied.';
+    if (unpassedQuiz) {
+      errorMsg = `Certification quiz "${unpassedQuiz.title}" must be passed with a minimum score of 75% to unlock and earn your certificate.`;
+    } else {
+      errorMsg = 'Please complete all required modules and lessons before claiming your certificate.';
+    }
+
+    return res.status(400).json({ error: errorMsg });
+  }
+
+  const enrichedCert = queryOne(
+    `SELECT cert.*, c.title as course_title, u.name as student_name
+     FROM certificates cert
+     JOIN courses c ON cert.course_id = c.id
+     JOIN users u ON cert.user_id = u.id
+     WHERE cert.id = ?`,
+    [cert.id]
+  );
+
+  // Notify student about certificate completion
+  createNotification({
+    userId: req.user.id,
+    title: 'Certificate of Completion Earned!',
+    message: `Congratulations! You have successfully earned your certificate for "${enrichedCert.course_title}". Verification code: ${enrichedCert.verification_code}`,
+    type: 'CERTIFICATE',
+    linkUrl: `/certificate/${enrichedCert.verification_code}`
+  });
+
+  return res.json({
+    success: true,
+    certificate: enrichedCert
+  });
+});
+
+// Public certificate verification endpoint (no auth required!)
+router.get('/verify/:code', (req, res) => {
+  const { code } = req.params;
+  const cert = queryOne(
+    `SELECT cert.id, cert.certificate_code, cert.issue_date, cert.completion_date, cert.template_version,
+            c.id as course_id, c.title as course_title, c.category as course_category,
+            u.name as student_name, u.avatar_url as student_avatar
+     FROM certificates cert
+     JOIN courses c ON cert.course_id = c.id
+     JOIN users u ON cert.user_id = u.id
+     WHERE UPPER(cert.certificate_code) = UPPER(?)`,
+    [code.trim()]
+  );
+
+  if (!cert) {
+    return res.status(404).json({
+      valid: false,
+      error: 'Certificate not found. The certificate code is invalid or has not been issued.'
+    });
+  }
+
+  return res.json({
+    valid: true,
+    certificate: cert
+  });
+});
+
+export default router;

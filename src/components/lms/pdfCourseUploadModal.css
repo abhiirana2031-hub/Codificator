@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Codificator LMS - PDF Course Syllabus Scanner & Upload Modal Stylesheet
+   Rich dark-mode glassmorphic styling, animations, and utility class support
+   ========================================================================== */
+
+/* 1. Modal Overlay & Container */
+.pdf-modal-overlay,
+div.fixed.inset-0.z-50 {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: clamp(12px, 3vw, 24px) !important;
+  background-color: rgba(6, 11, 25, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  overflow-y: auto !important;
+  animation: pdfFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes pdfFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.pdf-modal-dialog,
+div.relative.w-full.max-w-4xl {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 920px !important;
+  background: linear-gradient(175deg, #0f172a 0%, #0b1120 100%) !important;
+  border: 1px solid rgba(71, 85, 105, 0.6) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+  color: #f1f5f9 !important;
+  font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif !important;
+}
+
+/* 2. Header */
+.pdf-modal-header,
+div.border-b.border-slate-800 {
+  border-bottom: 1px solid #1e293b !important;
+}
+
+/* 3. Dropzone & Upload State */
+.pdf-dropzone,
+div.border-2.border-dashed {
+  border-width: 2px !important;
+  border-style: dashed !important;
+  border-radius: 16px !important;
+  padding: 32px 24px !important;
+  text-align: center !important;
+  transition: all 0.25s ease !important;
+  cursor: pointer !important;
+}
+
+.pdf-dropzone:hover {
+  border-color: #6366f1 !important;
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+/* 4. Utility Classes - Layout & Flex */
+.flex { display: flex !important; }
+.inline-flex { display: inline-flex !important; }
+.grid { display: grid !important; }
+.hidden { display: none !important; }
+.flex-1 { flex: 1 1 0% !important; }
+.shrink-0 { flex-shrink: 0 !important; }
+.flex-col { flex-direction: column !important; }
+.flex-row { flex-direction: row !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.items-center { align-items: center !important; }
+.items-start { align-items: flex-start !important; }
+.justify-center { justify-content: center !important; }
+.justify-between { justify-content: space-between !important; }
+.justify-end { justify-content: flex-end !important; }
+.overflow-y-auto { overflow-y: auto !important; }
+.overflow-x-auto { overflow-x: auto !important; }
+.overflow-hidden { overflow: hidden !important; }
+
+/* 5. Spacing & Gaps */
+.gap-1 { gap: 4px !important; }
+.gap-1\.5 { gap: 6px !important; }
+.gap-2 { gap: 8px !important; }
+.gap-2\.5 { gap: 10px !important; }
+.gap-3 { gap: 12px !important; }
+.gap-4 { gap: 16px !important; }
+.p-2 { padding: 8px !important; }
+.p-2\.5 { padding: 10px !important; }
+.p-3 { padding: 12px !important; }
+.p-3\.5 { padding: 14px !important; }
+.p-4 { padding: 16px !important; }
+.p-5 { padding: 20px !important; }
+.p-6 { padding: 24px !important; }
+.p-8 { padding: 32px !important; }
+.px-2 { padding-left: 8px !important; padding-right: 8px !important; }
+.px-2\.5 { padding-left: 10px !important; padding-right: 10px !important; }
+.px-3 { padding-left: 12px !important; padding-right: 12px !important; }
+.px-4 { padding-left: 16px !important; padding-right: 16px !important; }
+.px-5 { padding-left: 20px !important; padding-right: 20px !important; }
+.px-6 { padding-left: 24px !important; padding-right: 24px !important; }
+.py-0\.5 { padding-top: 2px !important; padding-bottom: 2px !important; }
+.py-1 { padding-top: 4px !important; padding-bottom: 4px !important; }
+.py-1\.5 { padding-top: 6px !important; padding-bottom: 6px !important; }
+.py-2 { padding-top: 8px !important; padding-bottom: 8px !important; }
+.py-2\.5 { padding-top: 10px !important; padding-bottom: 10px !important; }
+.py-3 { padding-top: 12px !important; padding-bottom: 12px !important; }
+.py-4 { padding-top: 16px !important; padding-bottom: 16px !important; }
+.py-5 { padding-top: 20px !important; padding-bottom: 20px !important; }
+.pt-1 { padding-top: 4px !important; }
+.pt-2 { padding-top: 8px !important; }
+.pl-1 { padding-left: 4px !important; }
+.mt-0\.5 { margin-top: 2px !important; }
+.mt-1 { margin-top: 4px !important; }
+.mt-2 { margin-top: 8px !important; }
+.mt-3 { margin-top: 12px !important; }
+.mb-2 { margin-bottom: 8px !important; }
+.mb-4 { margin-bottom: 16px !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+
+/* Grid Columns */
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* Space-y utilities */
+.space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px !important; }
+.space-y-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px !important; }
+.space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px !important; }
+.space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 10px !important; }
+.space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px !important; }
+.space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 16px !important; }
+.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 20px !important; }
+.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 24px !important; }
+
+/* 6. Typography */
+.text-\[10px\] { font-size: 10px !important; line-height: 14px !important; }
+.text-\[11px\] { font-size: 11px !important; line-height: 16px !important; }
+.text-xs { font-size: 12px !important; line-height: 18px !important; }
+.text-sm { font-size: 14px !important; line-height: 20px !important; }
+.text-base { font-size: 16px !important; line-height: 24px !important; }
+.text-lg { font-size: 18px !important; line-height: 28px !important; font-family: 'Nunito', sans-serif !important; }
+.font-medium { font-weight: 500 !important; }
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
+.font-mono { font-family: 'Fira Code', monospace !important; }
+.uppercase { text-transform: uppercase !important; }
+.tracking-tight { letter-spacing: -0.025em !important; }
+.tracking-wide { letter-spacing: 0.025em !important; }
+.tracking-wider { letter-spacing: 0.05em !important; }
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.truncate { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.line-clamp-1 { display: -webkit-box !important; -webkit-line-clamp: 1 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
+.list-disc { list-style-type: disc !important; }
+.list-inside { list-style-position: inside !important; }
+
+/* 7. Colors & Themes */
+.text-white { color: #ffffff !important; }
+.text-slate-200 { color: #e2e8f0 !important; }
+.text-slate-300 { color: #cbd5e1 !important; }
+.text-slate-400 { color: #94a3b8 !important; }
+.text-slate-500 { color: #64748b !important; }
+.text-slate-600 { color: #475569 !important; }
+.text-indigo-300 { color: #a5b4fc !important; }
+.text-indigo-400 { color: #818cf8 !important; }
+.text-purple-400 { color: #c084fc !important; }
+.text-emerald-200 { color: #a7f3d0 !important; }
+.text-emerald-300 { color: #6ee7b7 !important; }
+.text-emerald-400 { color: #34d399 !important; }
+.text-rose-200 { color: #fecdd3 !important; }
+.text-rose-300 { color: #fda4af !important; }
+.text-rose-400 { color: #fb7185 !important; }
+.text-amber-200 { color: #fde68a !important; }
+.text-amber-300 { color: #fcd34d !important; }
+.text-amber-400 { color: #fbbf24 !important; }
+.text-blue-400 { color: #60a5fa !important; }
+
+/* Backgrounds */
+.bg-slate-900 { background-color: #0f172a !important; }
+.bg-slate-900\/95 { background-color: rgba(15, 23, 42, 0.95) !important; }
+.bg-slate-900\/80 { background-color: rgba(15, 23, 42, 0.8) !important; }
+.bg-slate-900\/70 { background-color: rgba(15, 23, 42, 0.7) !important; }
+.bg-slate-900\/60 { background-color: rgba(15, 23, 42, 0.6) !important; }
+.bg-slate-900\/50 { background-color: rgba(15, 23, 42, 0.5) !important; }
+.bg-slate-800 { background-color: #1e293b !important; }
+.bg-slate-800\/80 { background-color: rgba(30, 41, 59, 0.8) !important; }
+.bg-slate-800\/50 { background-color: rgba(30, 41, 59, 0.5) !important; }
+.bg-slate-800\/40 { background-color: rgba(30, 41, 59, 0.4) !important; }
+.bg-slate-800\/30 { background-color: rgba(30, 41, 59, 0.3) !important; }
+.bg-slate-950\/80 { background-color: rgba(2, 6, 23, 0.8) !important; }
+.bg-slate-950\/70 { background-color: rgba(2, 6, 23, 0.7) !important; }
+.bg-slate-950\/40 { background-color: rgba(2, 6, 23, 0.4) !important; }
+
+.bg-emerald-500 { background-color: #10b981 !important; }
+.bg-emerald-600 { background-color: #059669 !important; }
+.bg-emerald-500\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.2) !important; }
+.bg-emerald-950\/30 { background-color: rgba(6, 78, 59, 0.3) !important; }
+
+.bg-rose-500 { background-color: #ef4444 !important; }
+.bg-rose-500\/10 { background-color: rgba(239, 68, 68, 0.1) !important; }
+.bg-rose-500\/20 { background-color: rgba(239, 68, 68, 0.2) !important; }
+.bg-rose-950\/30 { background-color: rgba(136, 19, 55, 0.3) !important; }
+
+.bg-amber-500\/10 { background-color: rgba(245, 158, 11, 0.1) !important; }
+.bg-amber-500\/20 { background-color: rgba(245, 158, 11, 0.2) !important; }
+
+.bg-indigo-500\/10 { background-color: rgba(99, 102, 241, 0.1) !important; }
+.bg-indigo-500\/20 { background-color: rgba(99, 102, 241, 0.2) !important; }
+.bg-indigo-500\/5 { background-color: rgba(99, 102, 241, 0.05) !important; }
+.bg-purple-500\/10 { background-color: rgba(168, 85, 247, 0.1) !important; }
+.bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+
+/* Gradients */
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops, #6366f1, #8b5cf6)) !important;
+}
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-stops, #6366f1, #8b5cf6)) !important;
+}
+.from-indigo-600.to-purple-600 {
+  background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+}
+.from-emerald-600.to-teal-600 {
+  background-image: linear-gradient(135deg, #059669 0%, #0d9488 100%) !important;
+}
+.from-indigo-500.to-purple-600 {
+  background-image: linear-gradient(135deg, #6366f1 0%, #9333ea 100%) !important;
+}
+
+/* Borders */
+.border { border-width: 1px !important; border-style: solid !important; }
+.border-2 { border-width: 2px !important; border-style: solid !important; }
+.border-b { border-bottom-width: 1px !important; border-bottom-style: solid !important; }
+.border-b-2 { border-bottom-width: 2px !important; border-bottom-style: solid !important; }
+.border-t { border-top-width: 1px !important; border-top-style: solid !important; }
+.border-slate-800 { border-color: #1e293b !important; }
+.border-slate-800\/80 { border-color: rgba(30, 41, 59, 0.8) !important; }
+.border-slate-700 { border-color: #334155 !important; }
+.border-slate-700\/80 { border-color: rgba(51, 65, 85, 0.8) !important; }
+.border-slate-700\/60 { border-color: rgba(51, 65, 85, 0.6) !important; }
+.border-emerald-500\/40 { border-color: rgba(16, 185, 129, 0.4) !important; }
+.border-emerald-500\/30 { border-color: rgba(16, 185, 129, 0.3) !important; }
+.border-emerald-500\/20 { border-color: rgba(16, 185, 129, 0.2) !important; }
+.border-rose-500\/40 { border-color: rgba(239, 68, 68, 0.4) !important; }
+.border-rose-500\/30 { border-color: rgba(239, 68, 68, 0.3) !important; }
+.border-rose-500\/20 { border-color: rgba(239, 68, 68, 0.2) !important; }
+.border-amber-500\/30 { border-color: rgba(245, 158, 11, 0.3) !important; }
+.border-amber-500\/20 { border-color: rgba(245, 158, 11, 0.2) !important; }
+.border-indigo-500 { border-color: #6366f1 !important; }
+.border-indigo-500\/30 { border-color: rgba(99, 102, 241, 0.3) !important; }
+.border-indigo-500\/20 { border-color: rgba(99, 102, 241, 0.2) !important; }
+.border-purple-500\/20 { border-color: rgba(168, 85, 247, 0.2) !important; }
+.border-blue-500\/20 { border-color: rgba(59, 130, 246, 0.2) !important; }
+.border-transparent { border-color: transparent !important; }
+
+/* Border Radii */
+.rounded { border-radius: 4px !important; }
+.rounded-md { border-radius: 6px !important; }
+.rounded-lg { border-radius: 8px !important; }
+.rounded-xl { border-radius: 12px !important; }
+.rounded-2xl { border-radius: 16px !important; }
+.rounded-full { border-radius: 9999px !important; }
+
+/* Dimensions */
+.w-3 { width: 12px !important; }
+.h-3 { height: 12px !important; }
+.w-3\.5 { width: 14px !important; }
+.h-3\.5 { height: 14px !important; }
+.w-4 { width: 16px !important; }
+.h-4 { height: 16px !important; }
+.w-5 { width: 20px !important; }
+.h-5 { height: 20px !important; }
+.w-6 { width: 24px !important; }
+.h-6 { height: 24px !important; }
+.w-7 { width: 28px !important; }
+.h-7 { height: 28px !important; }
+.w-10 { width: 40px !important; }
+.h-10 { height: 40px !important; }
+.w-12 { width: 48px !important; }
+.h-12 { height: 48px !important; }
+.w-14 { width: 56px !important; }
+.h-14 { height: 56px !important; }
+.w-full { width: 100% !important; }
+.max-w-md { max-width: 28rem !important; }
+.max-w-lg { max-width: 32rem !important; }
+.max-h-60 { max-height: 15rem !important; }
+
+/* Buttons & Interactions */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.55 !important;
+}
+
+/* Spinners & Transitions */
+.animate-spin {
+  animation: pdfSpin 1s linear infinite !important;
+}
+@keyframes pdfSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.transition-all {
+  transition-property: all !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-duration: 150ms !important;
+}
+.transition-colors {
+  transition-property: color, background-color, border-color !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-duration: 150ms !important;
+}
+
+/* Hover States */
+.hover\:bg-slate-800:hover { background-color: #1e293b !important; }
+.hover\:bg-slate-800\/80:hover { background-color: rgba(30, 41, 59, 0.8) !important; }
+.hover\:bg-slate-800\/40:hover { background-color: rgba(30, 41, 59, 0.4) !important; }
+.hover\:bg-slate-800\/50:hover { background-color: rgba(30, 41, 59, 0.5) !important; }
+.hover\:bg-slate-700:hover { background-color: #334155 !important; }
+.hover\:text-white:hover { color: #ffffff !important; }
+.hover\:text-slate-200:hover { color: #e2e8f0 !important; }
+.hover\:text-indigo-300:hover { color: #a5b4fc !important; }
+.hover\:text-rose-400:hover { color: #fb7185 !important; }
+.hover\:border-slate-600:hover { border-color: #475569 !important; }
+.hover\:from-indigo-500:hover { --tw-gradient-from: #6366f1 !important; }
+.hover\:to-purple-500:hover { --tw-gradient-to: #a855f7 !important; }
+.hover\:from-emerald-500:hover { --tw-gradient-from: #10b981 !important; }
+.hover\:to-teal-500:hover { --tw-gradient-to: #14b8a6 !important; }

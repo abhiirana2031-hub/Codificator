@@ -1,0 +1,62 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1131 >>
+stream
+BT
+/F1 10 Tf
+72 720 Td
+14 TL
+(Course Title: Cloud Native DevOps and Kubernetes Orchestration) Tj
+T* (Category: DevOps) Tj
+T* (Level: Intermediate to Advanced) Tj
+T* (Duration: 50 hours) Tj
+T* (Course Description:) Tj
+T* (A production-grade curriculum preparing cloud engineers for containerized workflows, CI/CD pipelines, and microservices.) Tj
+T* (Learning Objectives:) Tj
+T* (- Deploy containerized workloads with Docker and Kubernetes) Tj
+T* (- Implement GitOps deployment strategies with ArgoCD) Tj
+T* (- Monitor distributed microservices with Prometheus and Grafana) Tj
+T* (Prerequisites:) Tj
+T* (- Basic Linux CLI familiarity) Tj
+T* (Module 1: Container Foundations with Docker) Tj
+T* (Lesson 1: Multi-stage Docker Builds) Tj
+T* (Format: TEXT) Tj
+T* (Duration: 20 mins) Tj
+T* (Lesson 2: Docker Networking and Volume Mounts) Tj
+T* (Format: CODE) Tj
+T* (Duration: 30 mins) Tj
+T* (Module 2: Kubernetes Cluster Architecture) Tj
+T* (Lesson 1: Pods, Deployments and ReplicaSets) Tj
+T* (Format: TEXT) Tj
+T* (Duration: 25 mins) Tj
+T* (Lesson 2: Ingress Controllers and Services) Tj
+T* (Format: CODE) Tj
+T* (Duration: 35 mins) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1493
+%%EOF

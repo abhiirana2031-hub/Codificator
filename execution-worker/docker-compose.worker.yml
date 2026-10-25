@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  execution-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: codificators-sandbox:latest
+    container_name: codificators-worker
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    user: "10001:10001"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+          pids: 64
+    tmpfs:
+      - /tmp:rw,size=16M,noexec,nosuid,nodev
+    restart: "no"

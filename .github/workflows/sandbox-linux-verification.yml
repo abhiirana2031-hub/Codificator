@@ -1,0 +1,70 @@
+name: Linux Sandbox Verification and LMS CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  verify-linux-sandbox:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Inspect Linux Host & Docker Environment
+        run: |
+          echo "=== Linux Host Details ==="
+          uname -a
+          cat /etc/os-release
+          echo "=== Cgroup Controller Version ==="
+          stat -fc %T /sys/fs/cgroup/
+          echo "=== Docker Version ==="
+          docker version
+
+      - name: Build Execution Worker Container Image
+        run: |
+          docker build -t codificators-sandbox:latest -f execution-worker/Dockerfile.worker execution-worker/
+          docker images codificators-sandbox:latest --format "Image ID: {{.ID}}, Tag: {{.Repository}}:{{.Tag}}, Size: {{.Size}}"
+
+      - name: Verify Container Runtimes & Non-Root User
+        run: |
+          docker run --rm codificators-sandbox:latest python3 --version
+          docker run --rm codificators-sandbox:latest node --version
+          USER_ID=$(docker run --rm codificators-sandbox:latest id -u)
+          GROUP_ID=$(docker run --rm codificators-sandbox:latest id -g)
+          echo "Container User: UID $USER_ID, GID $GROUP_ID"
+          test "$USER_ID" = "10001" || { echo "User UID is not 10001!"; exit 1; }
+
+      - name: Verify Linux Kernel Isolation (Security Controls 1-12)
+        run: |
+          chmod +x execution-worker/verify-linux-sandbox.sh
+          ./execution-worker/verify-linux-sandbox.sh
+
+      - name: Run LMS Test Suite
+        run: npm test
+
+      - name: Start Background Server for Live Verification
+        run: |
+          node server/server.js &
+          sleep 3
+
+      - name: Run Phase 7.4 Live API Verification
+        run: node tests/phase7_4_live_verification.js
+
+      - name: Run E2E Student Journey Verification
+        run: node tests/journey_e2e_api.js
+
+      - name: Build Frontend Production Bundle
+        run: npm run build

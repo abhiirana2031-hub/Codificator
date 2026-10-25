@@ -1,0 +1,3459 @@
+--- Page 11 ---
+x Contents
+11 Hashing 391
+11.1 Hash Functions 391
+11.2 Collisions 393
+11.3 Collision Resolution Methods 393
+11.4 Clustering 394
+11.5 Questions 395
+Index 397
+
+--- Page 12 ---
+xi
+Preface
+This book was designed to serve as a textbook for undergraduate engi -
+neering students across all disciplines and postgraduate level courses in 
+computer applications. Y oung researchers working on efficient data storage 
+and related applications will also find it to be a helpful reference source to 
+guide them in the newly established techniques of this rapidly growing 
+research field.
+Dr. Sachi Nandan Mohanty and  
+Prof. Pabitra Kumar Tripathy
+December 2020
+Welcome to the first edition of Data Structures and Algorithms Using C++. 
+A data structure is the logical or mathematical arrangement of data in 
+memory. To be effective, data has to be organized in a manner that adds to 
+the efficiency of an algorithm and also describe the relationships between 
+these data items and the operations that can be performed on these items. 
+The choice of appropriate data structures and algorithms forms the funda-
+mental step in the design of an efficient program. Thus, a deep understand-
+ing of data structure concepts is essential for students who wish to work 
+on the design and implementation of system software written in C++, an 
+object-oriented programming language that has gained popularity in both 
+academia and industry. Therefore, this book was developed to provide 
+comprehensive and logical coverage of data structures like stacks, queues, 
+linked lists, trees and graphs, which makes it an excellent choice for learn-
+ing data structures. The objective of the book is to introduce the concepts 
+of data structures and apply these concepts in real-life problem solving. 
+Most of the examples presented resulted from student interaction in the 
+classroom. This book utilizes a systematic approach wherein the design of 
+each of the data structures is followed by algorithms of different operations 
+that can be performed on them and the analysis of these algorithms in 
+terms of their running times.
+
+--- Page 13 ---
+1
+1
+Introduction to Data Structure
+1.1 Definition and Use of Data Structure
+Data structure is the representation of the logical relationship existing 
+between individual elements of data. In other words the data structure is a 
+way of organizing all data items that considers not only the elements stored 
+but also their relationship to each other.
+Data structure specifies
+• Organization of data
+• Accessing methods
+• Degree of associativity
+• Processing alternatives for information
+The data structures are the building blocks of a program and hence the 
+selection of a particular data structure stresses on
+• The data structures must be rich enough in structure to 
+reflect the relationship existing between the data, and
+• The structure should be simple so that we can process data 
+effectively whenever required.
+In mathematically Algorithm + Data Structure = Program
+Finally we can also define the data structure as the “Logical and mathe-
+matical model of a particular organization of data”
+Sachi Nandan Mohanty and Pabitra Kumar Tripathy. Data Structure and Algorithms Using C++: 
+A Practical Implementation, (1–14) © 2021 Scrivener Publishing LLC
+
+--- Page 14 ---
+2 
+1.2 Types of Data Structure
+Data structure can be broadly classified into two categories as Linear and 
+Non-Linear
+DATA STRUCTURE
+LINEAR NON LINEAR
+ARRAY STACKQUEUE TREE GRAPH TABLES SETS
+Linear Data Structures
+In linear data structures, values are arranged in linear fashion. Arrays, 
+linked lists, stacks, and queues are the examples of linear data structures in 
+which values are stored in a sequence.
+Non-Linear Data Structure
+This type is opposite to linear. The data values in this structure are not 
+arranged in order. Tree, graph, table, and sets are the examples of non-  
+linear data structure.
+Operations Performed in Data Structure
+In data structure we can perform the operations like 
+• Traversing
+• Insertion
+• Deletion
+• Merging
+• Sorting
+• Searching
+Data Structure and Algorithms Using C++
+
+--- Page 15 ---
+Introduction to Data Structure 3
+1.3 Algorithm
+The step by step procedure to solve a problem is known as the ALGORITHM. 
+An algorithm is a well-organized, pre-arranged, and defined computational 
+module that receives some values or set of values as input and provides a 
+single or set of values as out put. These well-defined computational steps 
+are arranged in sequence, which processes the given input into output. 
+An algorithm is said to be accurate and truthful only when it provides 
+the exact wanted output.
+The efficiency of an algorithm depends on the time and space complex-
+ities. The complexity of an algorithm is the function which gives the run -
+ning time and/or space in terms of the input size.
+Steps Required to Develop an Algorithm
+• Finding a method for solving a problem. Every step of an 
+algorithm should be defined in a precise and in a clear man-
+ner. Pseudo code is also used to describe an algorithm.
+• The next step is to validate the algorithm. This step includes 
+all the steps in our algorithm and should be done manually 
+by giving the required input, perform the required steps 
+including in our algorithm and should get the required 
+amount of output in a finite amount of time.
+• Finally implement the algorithm in terms of programming 
+language.
+Mathematical Notations and Functions
+  Floor and Ceiling Functions
+Floor function returns the greatest integer that does not exceed 
+the number.
+Ceiling function returns the least integer that is not less than 
+the number.
+      no         denotes the floor function
+       no       denotes the ceil function
+Ex : 
+                5.23    = 5                  5.23      = 6
+
+--- Page 16 ---
+4 
+  Remainder Function
+To find the remainder “mod” function is being used as
+  A mod B
+  To find the Integer and Absolute value of a number
+ INT(5.34) = 5      This statement returns the integer part of 
+the number
+ INT(- 6.45) = 6      This statement returns the absolute as well 
+as the integer portion of the number
+  Summation Symbol
+ To add a series of number as a1+ a2 + a3 +…………+ an the 
+symbol Σ is used 
+  n
+  Σ ai
+  i=1
+  Factorial of a Number
+ The product of the positive integers  from 1 to n is known as 
+the factorial of n and it is denoted as n!.
+  0! = 1
+Algorithemic Notations
+While writing the algorithm the comments are provided with in [ ].
+The assignment should use the symbol “: =” instead of  “=” 
+For Input use Read : variable name
+For output use write : message/variable name
+The control structures can also be allowed to use inside an algorithm but 
+their way of approaching will be some what different as
+Simple If
+ If condition, then:
+    Statements
+ [end of if structure]
+Data Structure and Algorithms Using C++
+
+--- Page 17 ---
+Introduction to Data Structure 5
+If…else
+ If condition, then:
+  Statements
+ Else :
+  Statements
+ [end of if structure]
+If…else ladder
+ If condition1, then:
+    Statements
+ Else If condition2, then:
+    Statements
+ Else If condition3, then:
+    Statements
+ …………………………………………
+ …………………………………………
+ …………………………………………
+ Else If conditionN, then:
+  Statements
+ Else:
+  Statements
+ [end of if structure]
+LOOPING CONSTRUCT
+ Repeat for var = start_value to end_value by 
+step_value
+  Statements
+ [end of loop]
+ Repeat while condition:
+  Statements
+ [end of loop]
+  Ex : repeat for I = 1 to 10 by 2
+   Write:  i 
+   [end of  loop]
+OUTPUT
+ 1 3 5 7 9
+
+--- Page 18 ---
+6 
+1.4 Complexity of an Algorithm
+The complexity of programs can be judged by criteria such as whether 
+it satisfies the original specification task, whether the code is readable. 
+These factors affect the computing time and storage requirement of the 
+program.
+Space Complexity
+The space complexity of a program is the amount of memory it needs to 
+run to completion. The space needed by a program is the sum of the fol -
+lowing components:
+• A fixed part that includes space for the code, space for sim -
+ple variables and fixed size component variables, space for 
+constants, etc.
+• A variable part that consists of the space needed by com -
+ponent variables whose size is dependent on the particular 
+problem instance being solved, and the stack space used by 
+recursive procedures.
+Time Complexity
+The time complexity of a program is the amount of computer time it needs 
+to run to completion. The time complexity is of two types such as 
+• Compilation time 
+• Runtime
+The amount of time taken by the compiler to compile an algorithm is 
+known as compilation time. During compilation time it does not calculate 
+for the executable statements, it calculates only the declaration statements 
+and checks for any syntax and semantic errors.
+The run time depends on the size of an algorithm. If the number of 
+instructions in an algorithm is large, then the run time is also large, and if 
+the number of instructions in an algorithm is small, then the time for exe-
+cuting the program is also small. The runtime is calculated for executable 
+statements and not for declaration statements.
+Data Structure and Algorithms Using C++
+
+--- Page 19 ---
+Introduction to Data Structure 7
+Suppose space is fixed for one algorithm then only run time will be con-
+sidered for obtaining the complexity of algorithm, these are 
+• Best case
+• Worst case
+• Average case
+Best Case
+Generally, most of the algorithms behave sometimes in best case. In this 
+case, algorithm searches the element for the first time by itself.
+For example: In linear search, if it finds the element for the first time by 
+itself, then it behaves as the best case. Best case takes shortest time to exe -
+cute, as it causes the algorithms to do the least amount of work.
+Worst Case
+In worst case, we find the element at the end or when searching of elements 
+fails. This could involve comparing the key to each list value for a total of 
+N comparisons.
+For example in linear search suppose the element for which algorithm 
+is searching is the last element of array or it is not available in array then 
+algorithm behaves as worst case.
+Average Case
+Analyzing the average case behavior algorithm is a little bit complex than 
+the best case and worst case. Here, we take the probability with a list of 
+data. Average case of algorithm should be the average number of steps but 
+since data can be at any place, so finding exact behavior of algorithm is 
+difficult. As the volume of data increases, the average case of algorithm 
+behaves like the worst case of algorithm.
+1.5 Efficiency of an Algorithm
+Efficiency of an algorithm can be determined by measuring the time, space, 
+and amount of resources it uses for executing the program. The amount of 
+time taken by an algorithm can be calculated by finding the number of 
+steps the algorithm executes, while the space refers to the number of units 
+it requires for memory storage.
+
+--- Page 20 ---
+8 
+1.6 Asymptotic Notations
+The asymptotic notations are the symbols which are used to solve the dif -
+ferent algorithms and the notations are 
+• Big Oh Notation (O)
+• Little Oh Notation (o)
+• Omega Notation (W) 
+• Theta Notation (q)
+Big Oh (O) Notation
+This Notation gives the upper bound for a function to within a constant 
+factor. We write f(n) = O(g(n)) if there are +ve constants n0 and C such 
+that to the right of n0, the value of f(n) always lies on or below Cg(n)
+Omega Notation (W)
+This notation gives a lower bound for a function to with in a constant fac-
+tor. We write f(n) = Ωg(n) if there are positive constants n0 and C such that 
+to the right of n0 the value of f(n) always lies on or above Cg(n)
+Theta Notation (q)
+This notation bounds the function to within constant factors. We say f(n) = 
+θg(n) if there exists +ve constants n0, C1 and C2 such that to the right of n0 
+the value of f(n) always lies between c1g(n) and c2(g(n)) inclusive.
+Little Oh Notation (o)
+ F(n) = o(g(n)) iff f(n) = O(g(n)) and f(n) != Ωg(n).
+Introduction
+An important question is: How efficient is an algorithm or piece of code? 
+Efficiency covers lots of resources, including:
+CPU (time) usage 
+Memory usage 
+Disk usage 
+Network usage 
+Data Structure and Algorithms Using C++
+
+--- Page 21 ---
+Introduction to Data Structure 9
+All are important but we will mostly talk about CPU time 
+Be careful to differentiate between:
+Performance: how much time/memory/disk/... is actually used 
+when a program is running. This depends on the machine, compiler, etc., 
+as well as the code.
+Complexity: how do the resource requirements of a program or algorithm 
+scale, i.e., what happens as the size of the problem being solved gets larger. 
+Complexity affects performance but not the other way around. The time 
+required by a method is proportional to the number of “basic operations” 
+that it performs. Here are some examples of basic operations: 
+one arithmetic operation (e.g., +, *). 
+one assignment 
+one test (e.g., x == 0) 
+one read 
+one write (of a primitive type) 
+Note: As an example,
+O(1) refers to constant time. 
+O(n) indicates linear time; 
+O(nk) (k fixed) refers to polynomial time; 
+O(log n) is called logarithmic time; 
+O(2n) refers to exponential time, etc. 
+n² + 3n + 4 is O(n²), since n² + 3n + 4 < 2n² for all n > 10. Strictly speaking, 
+3n + 4 is O(n²), too, but big-O notation is often misused to mean equal to 
+rather than less than.
+1.7 How to Determine Complexities
+In general, how can you determine the running time of a piece of code? 
+The answer is that it depends on what kinds of statements are used. 
+1. Sequence of statements 
+  statement 1;
+  statement 2;
+    ...
+  statement k;
+
+--- Page 22 ---
+10 
+ Note: this is code that really is exactly k statements; this is not 
+an unrolled loop like the N calls to addBefore shown above.) 
+The total time is found by adding the times for all statements: 
+ total time = time(statement 1) + time  
+(statement 2) + ... + time(statement k)
+ If each statement is “simple” (only involves basic opera -
+tions) then the time for each statement is constant and the 
+total time is also constant: O(1). In the following examples, 
+assume the statements are simple unless noted otherwise. 
+2. if-then-else statements
+  if (cond) {
+      sequence of statements 1
+  }
+  else {
+      sequence of statements 2
+  }
+ Here, either sequence 1 will execute, or sequence 2 will execute. 
+Therefore, the worst-case time is the slowest of the two possi-
+bilities: max(time(sequence 1), time(sequence 2)). For exam-
+ple, if sequence 1 is O(N) and sequence 2 is O(1) the worst-case 
+time for the whole if-then-else statement would be O(N). 
+3. for loops 
+  for (i = 0; i < N; i++) {
+      sequence of statements
+  }
+ The loop executes N times, so the sequence of statements also 
+executes N times. Since we assume the statements are O(1), the 
+total time for the for loop is N * O(1), which is O(N) overall. 
+4. Nested loops 
+  for (i = 0; i < N; i++) {
+      for (j = 0; j < M; j++) {
+          sequence of statements
+      }
+  }
+ The outer loop executes N times. Every time the outer loop 
+executes, the inner loop executes M times. As a result, the 
+statements in the inner loop execute a total of N * M times. 
+Thus, the complexity is O(N * M). In a common special case 
+Data Structure and Algorithms Using C++
+
+--- Page 23 ---
+Introduction to Data Structure 11
+where the stopping condition of the inner loop is j < N  
+instead of j < M (i.e., the inner loop also executes N times), 
+the total complexity for the two loops is O(N2). 
+5. Statements with method calls: 
+ When a statement involves a method call, the complexity of 
+the statement includes the complexity of the method call. 
+Assume that you know that method f takes constant time, 
+and that method g takes time proportional to (linear in) the 
+value of its parameter k. Then the statements below have the 
+time complexities indicated. 
+  f(k);  // O(1)
+  g(k);  // O(k)
+ When a loop is involved, the same rule applies. For example: 
+  for (j = 0; j < N; j++) g(N);
+ has complexity (N 2). The loop executes N times and each 
+method call g(N) is complexity O(N).
+Examples
+Q1. What is the worst-case complexity of the each of the following code 
+fragments? 
+Two loops in a row: 
+ for (i = 0; i < N; i++) {
+     sequence of statements
+ }
+ for (j = 0; j < M; j++) {
+     sequence of statements
+ }
+Answer:  The first loop is O(N) and the second loop is O(M). Since you 
+do not know which is bigger, you say this is O(N+M). This can 
+also be written as O(max(N,M)). In the case where the second 
+loop goes to N instead of M the complexity is O(N). Y ou can 
+see this from either expression above. O(N+M) becomes O(2N) 
+and when you drop the constant it is O(N). O(max(N,M)) 
+becomes O(max(N,N)) which is O(N).
+
+--- Page 24 ---
+12 
+Q2. How would the complexity change if the second loop went to N 
+instead of M? 
+A nested loop followed by a non-nested loop: 
+ for (i = 0; i < N; i++) {
+     for (j = 0; j < N; j++) {
+         sequence of statements
+     }
+ }
+ for (k = 0; k < N; k++) {
+     sequence of statements
+ }
+Answer:  The first set of nested loops is O(N2) and the second loop is 
+O(N). This is O(max(N2,N)) which is O(N2). 
+Q3. A nested loop in which the number of times the inner loop executes 
+depends on the value of the outer loop index: 
+ for (i = 0; i < N; i++) {
+     for (j = i; j < N; j++) {
+         sequence of statements
+     }
+ }
+Answer:  When i is 0 the inner loop executes N times. When i is 1 the 
+inner loop executes N-1 times. In the last iteration of the outer 
+loop when i is N-1 the inner loop executes 1 time. The number 
+of times the inner loop statements execute is N + N-1 + ... + 2 + 
+1. This sum is N(N+1)/2 and gives O(N2).
+Q4. For each of the following loops with a method call, determine the 
+overall complexity. As above, assume that method f takes constant time, 
+and that method g takes time linear in the value of its parameter.
+a. for (j = 0; j < N; j++) f(j);
+b. for (j = 0; j < N; j++) g(j);
+c. for (j = 0; j < N; j++) g(k);
+Answer: a.  Each call to f(j) is O(1). The loop executes N times so it is N x 
+O(1) or O(N). 
+b.  The first time the loop executes j is 0 and g(0) takes “no oper-
+ations. ” The next time j is 1 and g(1) takes 1 operations. The 
+last time the loop executes j is N-1 and g(N-1) takes N-1 oper-
+ations. The total work is the sum of the first N-1 numbers and 
+is O(N2). 
+Data Structure and Algorithms Using C++
+
+--- Page 25 ---
+Introduction to Data Structure 13
+c.  Each time through the loop g(k) takes k operations and the 
+loop executes N times. Since you do not know the relative size 
+of k and N, the overall complexity is O(N x k).
+1.8 Questions
+1. What is data structure?
+2. What are the types of operations that can be performed with 
+data structure?
+3. What is asymptotic notation and why  is this used?
+4. What is complexity and its type?
+5. Find the complexity of 3n2 + 5n.
+6. Distinguish between linear and non-linear data structure.
+7. Is it necessary is use data structure in every field? Justify 
+your answer.
+
+--- Page 26 ---
+15
+2
+Review of Concepts of ‘C++’
+2.1 Array
+Whenever we want to store some values then we have to take the help of a 
+variable, and for this we must have to declare it before its use. If we want 
+to store the details of a student so for this purpose we have to declare the 
+variables as 
+ char  name [20], add[30] ;
+ int roll, age, regdno ;
+ float total, avg ; 
+  etc…… 
+       for a individual student.
+If we want to store the details of more than one student than we have to 
+declare a huge amount of variables and which are too much difficult to access 
+it. I.e/ the programs length will increased too faster. So it will be better to 
+declare the variables in a group. I.e/ name variable will be used for more than 
+one student, roll variable will be used for more than one student, etc.
+So to declare the variable of same kind in a group is known as the Array 
+and the concept of array is used for this purpose only.
+Definition: The array is a collection of more than one element of same 
+kind with a single variable name.
+Types of Array:
+The arrays can be further classified into two broad categories such as:
+• One Dimensional (The array having one boundary 
+specification)
+• Multi dimensional (The array having more than one bound-
+ary specification)
+Sachi Nandan Mohanty and Pabitra Kumar Tripathy. Data Structure and Algorithms Using C++: 
+A Practical Implementation, (15–48) © 2021 Scrivener Publishing LLC
+
+--- Page 27 ---
+16 
+2.1.1 One-Dimensional Array
+Declaration:
+Syntax :
+  Data type variable_name[bound] ;
+The data type may be one of the data types that we are studied. The 
+variable name is also same as the normal variable_name but the bound is 
+the number which will further specify that how much variables you want 
+to combine into a single unit.
+ Ex : int roll[15];
+In the above example roll is an array 15 variables whose capacity is to 
+store the roll_number of 15 students.
+ And the individual variables are 
+    roll[0] , roll[1], roll[2], roll[3] ,……………..,roll[14]
+Array Element in Memory
+The array elements are stored in a consecutive manner inside the memory. 
+i.e./ They allocate a sequential memory allocation.
+For Ex : int x[7];
+ Let the x[0] will be at the memory address 568 then the entire array can 
+be represented in the memory as 
+x[0] X[1] X[2] X[3] X[4] X[5] X[6]
+568 570 572 574 576 578 580
+Initialization:
+The array is also initialized just like other normal variable except that 
+we have to pass a group of elements with in a chain bracket separated by 
+commas.
+Ex : int x[5]= { 24,23,5,67,897 } ;
+In the above statement x[0] = 24, x[1] = 23, x[2]=5, x[3]=67,x[4]=897
+Data Structure and Algorithms Using C++
+
+--- Page 28 ---
+Review of Concepts of ‘C++’ 17
+Retrieving and Storing Some Value From/Into the Array
+Since array is a collection of more than one elements of same kind so while 
+performing any task with the array we have to do that work repeatedly. 
+Therefore while retrieving or storing the elements from/into an array we 
+must have to use the concept of looping.
+Ex: Write a Program to Input 10 Elements Into an Array and 
+Display Them.
+ #include<iostream.h>
+    void main()
+  {
+  int x[10],i;
+  ;
+  cout<<“\nEnter 10 elements into the array”;
+   for(i=0 ; i<10; i++)
+      cin>>x[i];
+  cout<<“\n THE ENTERED ARRAY ELEMENTS ARE :”;
+   for(i=0 ; i<10; i++)
+       cout<<”   “<<x[i];
+  }
+OUTPUT
+ Enter 10 elements into the array
+ 12
+ 36
+ 89
+ 54
+ 6
+ 125
+ 35
+ 87
+ 49
+ 6
+  THE ENTERED ARRAY ELEMENTS ARE  :  12   36  
+89  54   6 125  35  87  49    6
+2.1.2 Multi-Dimensional Array
+The array having more than one boundary specification is known as multi 
+dimensional array. The total number of elements to be stored in side a 
+multi dimensional array is equals to the product of its boundaries.
+
+--- Page 29 ---
+18 
+But we do use the two dimensional array to handle the matrix opera -
+tions. The two dimensional array having two boundary specifications.
+Declaration of Two-Dimensional Array
+The declaration of the two dimensional array is just like the one dimen -
+sional array except that instead of using a single boundary we have to use 
+two boundary specification.
+SYNTAX
+ data_type variable_name[boundary1][boundary2];
+Ex : int x[3][4];
+In the above example x is the two dimensional array which has the capacity 
+to store (3x4) 12 elements. The individual number of elements are 
+ x[0][0]  x[0][1]  x[0][2]  x[0][3]
+ x[1][0]  x[1][1]  x[1][2]  x[1][3]
+ x[2][0]  x[2][1]  x[2][2]  x[2][3]
+INITIALIZATION
+The array can also be initialized as like one dimensional array.
+ Ex: int x[3][4] = {{3,5,7,8}, {45,12,34,3}, {56,89,56,23}};
+OR
+ int x[3][4] = {3,5,7,8,45,12,34,3,56,89,56,23};
+ After the above initialization 
+ x[0][0]=3 x[0][1]=5 x[0][2]=7 x[0][3]=8
+ x[1][0]=45 x[1][1]=12 x[1][2]=34 x[1][3]=3
+ x[2][0]=56 x[2][1]=89 x[2][2]=56 x[2][3]=23
+Processing of a Two-Dimensional Array
+While processing a two-dimensional array we have to use two loops.
+Data Structure and Algorithms Using C++
+
+--- Page 30 ---
+Review of Concepts of ‘C++’ 19
+Example : W AP to input a  3 x 3 matrix and find out the sum of 
+lower triangular elements. 
+#include<iostream.h>
+ void main()
+    {
+  int mat[3][3],i,j,sum=0;
+/* INPUT THE ARRAY */ 
+for(i=0 ; i<3 ; i++) 
+ for(j=0 ; j<3 ; j++)
+   {
+ cout<<“\nEnter a number”;
+ cin>>mat[i][j];
+         }
+/* LOGIC TO SUM THE LOWER TRIANGULAR ELEMENTS */
+for(i=0 ; i<3 ; i++) 
+    for(j=0 ; j<3 ; j++)
+         {
+ if(i>=j)
+   sum=sum+mat[i][j];    
+         }
+/* PRINT THE ARRAY */ 
+cout“\nTHE  ENTERED MATRIX IS\n”;
+for(i=0 ; i<3 ; i++) 
+  {
+    for(j=0 ; j<3 ; j++)
+         {
+cout<<”   “<<mat[i][j];
+         }
+cout<<“\n”;
+}
+cout<<“\nSum of the lower triangular matrix is”<<sum;
+}
+
+--- Page 31 ---
+20 
+OUTPUT
+Enter a number 5
+Enter a number 7
+Enter a number 9
+Enter a number 2
+Enter a number 6
+Enter a number 8
+Enter a number 12
+Enter a number 24
+Enter a number 7
+THE ENTERED MATRIX IS
+ 5 7 9
+ 2 6 8 
+ 12 24 7
+Sum of the lower triangular matrix is 56
+2.1.3 String Handling
+The string is a collection of more than one character. So it can also be called 
+as a character array. The approaching to the string/character array is some-
+what different compare to the normal array due to its speciality nature.
+The speciality is that the string always terminates with a NULL ( ‘\0’) 
+character. So while accessing the string there is no need to use the loop 
+frequently(We may access it as a array with the help of loop).
+When we will access it with the loop (like int, float etc. array) than the 
+NULL character will not be assigned at the end of it, so while printing it 
+we are bound to use the loop again. If we want to convert the character 
+array to a string so we have to assign the NULL character at the end of it, 
+manually.
+Representation of a string and a Character Array
+Let char x[10]=”India”;  /* Representation of a string*/
+I n d i a \0
+0 1 2 3 4 5 6 7 8 9
+Data Structure and Algorithms Using C++
+
+--- Page 32 ---
+Review of Concepts of ‘C++’ 21
+       char x[10] = {‘I’ , ’n’ , ’ d’ , ’i’ , ’a’}; /* Character Array */
+I n d i a
+0 1 2 3 4 5 6 7 8 9
+Declaration of a Character Array
+The declaration of the string/character array is same as the normal array, 
+except that instead of using other data type the data type ‘char’ is used.
+Syntax : Data_type  var_name[size] ;
+Ex: char name[20];
+Initialization of a String
+Let char x[10]=”India”;  /* Representation of a string*/
+I n d i a \0
+0 1 2 3 4 5 6 7 8 9
+       char x[10] = {‘I’ , ’n’ , ’ d’ , ’i’ , ’a’}; /* Character Array */
+Example: Wap to Input a string and display it.
+#include<iostream.h>
+ void main()
+ {
+ char x[20];
+ cout<<"\nEnter a string";
+ gets(x);
+ cout<<"\n THE ENTERED STRING IS "<<x;
+ }
+OUTPUT
+Enter a string Hello
+THE ENTERED STRING IS Hello
+OR
+
+--- Page 33 ---
+22 
+This process of Input is not preferable because forcibly we are bound to 
+input the 10 characters, not less than 10 or above 10 characters.
+#include<iostream.h>
+ void main()
+ {
+    char x[20];
+      int i;
+ cout<<"\nEnter a string";
+ for(i=0;i<10;i++)
+ cin>>x[i];
+ x[i]='\0'; /* CONVERTING THE CHARACTER ARRAY 
+TO STRING */
+ cout<<"\n THE ENTERED STRING IS "<<x;
+ }
+OR
+#include<iostream.h>
+     void main()
+ {
+ char x[20];
+int i;
+ cout<<"\nEnter a string";
+gets(x); 
+cout<<"\n THE ENTERED STRING IS ";
+   for(i=0; x[i]!=’\0’;i++)
+  cout<<x[i];
+ }
+OUTPUT
+Enter a string Hello
+THE ENTERED STRING IS Hello
+NOTE : If we want to scan a string as individual characters then we 
+have to use the loop as  for(i=0; str[i]!='\0';i++)  
+This is fixed for all the strings after input it.
+Data Structure and Algorithms Using C++
+
+--- Page 34 ---
+Review of Concepts of ‘C++’ 23
+Example – 2
+Write a program to input a string and count how many vowels are in it.
+#include<iostream.h>
+void main()
+  { 
+ char x[20];
+int i,count=0;
+cout<<"\n Enter a string";
+gets(x);
+   cout<<"\n The entered string is"<<x;
+for(i=0; x[i]!='\0';i++)
+ if(toupper(x[i])=='A' || toupper(x[i])=='E' 
+|| toupper(x[i])=='I' || toupper  (x[i])=='O' ||  
+toupper(x[i))=='U')
+  count++;
+cout<<"\n The string"<<x<< "having"<<count<<"num-
+bers of vowels";
+}
+OUTPUT
+Enter a string Wel Come
+The entered string is Wel Come
+The string Wel Come having 3 numbers of vowels.
+Example :
+Write  a program to find out the length of a string.
+ #include<iostream.h>
+void main()
+ {
+ char x[20];
+int i,len=0;
+  cout<<"\n Enter a string";
+   gets(x);
+for(i=0;x[i]!='\0';i++)
+    len++;
+cout<<"\n THE LENGTH OF"<<x<<"IS"<<len;
+ }
+
+--- Page 35 ---
+24 
+OUTPUT
+Enter a string hello India
+THE LENGTH OF hello India IS 11
+OR
+#include<iostream.h>
+void main()
+ {
+ char x[20];
+int i;
+  cout<<"\n Enter a string";
+   gets(x);
+for(i=0;x[i]!='\0';i++) ;
+cout<<"\n THE LENGTH OF"<<x<<"IS"<<len;
+ }
+OUTPUT
+Enter a string hello India
+THE LENGTH OF hello India IS 11
+String Manipulation
+The strings cannot be manipulated with the normal operators, so to have 
+some manipulation we have to use the help of certain string handling 
+functions. ’C’-language provides  a number of string handling functions 
+amongst them the most popularly used functions are 
+a. Strlen()
+b. Strrev()
+c. Strcat()
+d. Strcmp()
+e. Strcpy()
+f. Strupr()
+g. Strlwr()
+These functions prototypes are declared inside the  header file string.h
+  Strlen()
+ Purpose : Used to find out the length of a string.
+ Syntax   :  integer_variable = strlen(string);
+Data Structure and Algorithms Using C++
+
+--- Page 36 ---
+Review of Concepts of ‘C++’ 25
+  Strrev()
+ Purpose : Used to find out the reverse of a string.
+ Syntax   :  strrev(string);
+  Strcat()
+ Purpose: Used to concatenate(Join) two strings. It will 
+append the source string at the end of the destination. The 
+length of the destination will be the length of source + length 
+of destination
+ Syntax:  strcat(destination,source);
+  Strcmp()
+ Purpose: Used to compare two strings.
+ Process: The string comparison always starts with the first 
+character in each string and continuous with subsequent 
+characters until the corresponding characters differ or until 
+the end of a string is reached.
+This function returns an integer value that is 
+ < 0 if s1 < s2
+ == 0 if s1 == s2
+ >0 if s1 > s2
+The string comparison is always based upon the ASCII values of the 
+characters.
+ Syntax   :  integer_variable = strcmp(s1,s2);
+  Strcpy()
+ Purpose :To copy a string to other.
+ Syntax : strcpy(destination,source);
+  Strupr()
+ Purpose : To convert all the lower case alphabets to its cor-
+responding upper-case.
+ Syntax : strupr(string);
+  Strlwr()
+ Purpose : To convert all the upper case alphabets to its cor-
+responding lower-case.
+ Syntax : strlwr(string);
+ASCII V ALUES
+A  = 65    a = 97
+ 0 = 48
+
+--- Page 37 ---
+26 
+2.2 Function
+Definition: One or more than one statements combined together to form 
+a block with a particular name and having a specific task.
+The functions in ‘C’ are classified into two types as 
+a. Library Function or Pre defined function
+b. User defined function 
+The library functions are already comes with the ‘C’ compiler(Language). 
+Ex : printf(), scanf(), gets(), clrscr(), strlen() etc.
+The user defined functions are defined by the programmer when ever 
+required.
+2.2.1 User Defined Functions
+We will develop the functions just comparison with the library functions, 
+i.e/ All the library functions can be categorized into four types as
+1. integer variable = strlen(string/string variable)
+ [The strlen() takes a string ,find its length and returns it to a 
+integer variable]
+2. gets(string variable);
+ [the gets() takes a variable and stores string inside that which 
+will be entered by the user]
+3. character variable = getch();
+ [The getch() does not take any value/variable but it stores a 
+character into the character variable which will be entered 
+by the user]
+4. clrscr();
+ [This function does not take argument and not return also, 
+but it does its work that means it clears the screen]
+So by studying the above four types of functions we concluded that by 
+considering the arguments taken by the function and the values returned 
+by the functions the functions can be categorized into four types as 
+1. The function takes argument and also returns value.
+2. The function does not take argument but returns value.
+3. The function takes argument but not return value.
+4. The function does not take argument and also not return values.
+Data Structure and Algorithms Using C++
+
+--- Page 38 ---
+Review of Concepts of ‘C++’ 27
+Parts of a Function
+A function has generally three parts as 
+1. Declaration (Specifies that how the function will work, it 
+prepares only the skeleton of the function)
+2. Call [It call the function for execution]
+3. Definition [It specifies the work of the function i./ it is the 
+body part of the function]
+2.2.2 Construction  of a  Function 
+1. Function takes argument and also returns value.
+ DECLARATION
+  Return_type  function_name(data type, data_type, data_
+type, …………….);
+  Ex: int sum(int,int);
+ CALL
+ Variable = function_name(var1,var2,var3,……………..);
+  Ex: x = sum(a,b);
+  Where a,b,x are the integer variables
+ DEFINITION
+ Return_type function_name(data_type var1, data_type 
+var2,………..)
+ {
+  Body of the function ;
+ Return(value/variable/expression);
+ }
+ 
+ Ex:
+     int sum(int p, int q)
+  {
+      int z;
+      z = p+q;
+      return(z);
+  } 
+2. Function does not take argument but returns value.
+ DECLARATION
+  Return_type function_name();
+  Or
+
+--- Page 39 ---
+28 
+ Return_type function_name(void);
+  Ex : int sum();
+ CALL
+  Variable = function_name();
+     Ex :  x = sum();
+ Where x is an integer.
+ DEFINITION
+     Return_type function_name()
+    {
+   Body of function;
+   Return(value/variable/expression);
+  }
+ Ex:
+    int sum()
+        {
+           int a,b;
+        cout<<"\nEnter 2 numbers";
+          cin>>a>>b;
+          return(a+b);
+      }
+3. Function takes argument but not returns value
+ DECLARATION
+ void function_name(data type1,data type2,……………);
+ 
+  Ex : void sum(int,int);
+ CALL
+ function_name(var1,var2,var3…………);
+ 
+  Ex :  sum(x,y);
+ Where x and y is an integer.
+ DEFINITION
+ Void function_name (data_type1 v1, data_type2 v2,………)
+  {
+      Body of function ; 
+  }
+ Ex:
+    void sum(int x, int y)
+      {
+                   cout<<"\nSum = "<<x+y; 
+      }
+Data Structure and Algorithms Using C++
+
+--- Page 40 ---
+Review of Concepts of ‘C++’ 29
+4. Function does not take arguments and not returns value.
+ DECLARATION
+ void function_name(void);
+  Ex : void sum();
+ CALL
+  function_name();
+ 
+  Ex :  sum();
+ DEFINITION
+     Void function_name ()
+        {
+      Body of function ; 
+  }
+ Ex:
+    void sum()
+        {
+int x,y;
+cout<<"\n Enter two numbers";
+cin>>x>>y;
+          cout<<"\nSum = "<<x+y; 
+      }
+ARGUMENTS : Based upon which the function works.
+RETURN TYPE: The value returned /given by the function to its calling part.
+W AP TO FIND OUT THE SUM OF TWO NUMBERS
+Category – 1
+ #include<iostream.h>
+ void main()
+    {
+ int sum(int,int);
+ int x,y,z;
+ cout<<"\n Enter two numbers";
+ cin>>x>>y;
+ z = sum(x,y);
+ cout<<"\n Addition of"<<x<<"and"<<y<<"is"<<z;
+    }
+ int sum(int  p,   int q)
+   {
+   int r;
+ r = p+q;
+ return(r);
+   }
+
+--- Page 41 ---
+30 
+OUTPUT
+Enter two numbers 5
+6
+Addition of 5 and 6 is 11
+Category – 2
+ #include<iostream.h>
+ void main()
+    {
+ int sum();
+ int z;
+ z = sum();
+ cout<<"\n Addition is"<<z;
+    }
+ int sum()
+   {
+   int x,y;
+      cout<<"\n Enter two numbers";
+  cin>>x>>y;
+   return(x+y);
+   }
+OUTPUT
+Enter two numbers 5
+6
+Addition is 11
+Category – 3
+ #include<iostream.h>
+ void main()
+    {
+ void sum(int,int);
+ int x,y;
+ cout<<"\n Enter two numbers";
+ cin>>x>>y;
+     sum(x,y);
+    }
+ void sum(int  p,int q)
+   {
+    Cout<<“\n Addition 
+of”<<p<<”and”<<q<<”is”<<p+q;
+   }
+OUTPUT
+Enter two numbers 5
+6
+Addition of 5 and 6 is 11
+Data Structure and Algorithms Using C++
+
+--- Page 42 ---
+Review of Concepts of ‘C++’ 31
+Category – 4
+ #include<iostream.h>
+ void main()
+    {
+ void sum();
+ sum();
+    }
+ void sum()
+   {
+    int x,y;
+       cout<<"\n Enter two numbers";
+   cin>>x>>y;
+   cout<<"Addition of"<<x<<"and"<<y<<"is"<<x+y;
+   }
+OUTPUT
+Enter two numbers 5
+6
+Addition of 5 and 6 is 11
+2.2.3 Actual Argument and Formal Argument
+Those arguments kept inside the function call is known as actual argument 
+and those arguments kept inside the function definition is known as the 
+formal arguments (Because these are used to maintain the formality just to 
+store the values of the actual arguments).
+Ex:
+ #include<iostream.h>
+ void main()
+    {
+ int sum(int,int);
+ int x,y,z;
+ cout<<"\n Enter two numbers";
+ cin>>x>>y;
+z = sum(x,y); /* Here x and y are called as the 
+actual argument*/
+ cout<<"\n Addition of"<<x<<"and"<<y<<"is"<<z;
+    }
+int sum(int  p, int q) /* Here p and q are called as the formal 
+argument */
+   {
+   int r;
+ r = p+q;
+ return(r);
+   }
+
+--- Page 43 ---
+32 
+OUTPUT
+Enter two numbers 5
+6
+Addition of 5 and 6 is 11
+If a function is to use arguments, it must declare variables that accept the 
+values of the arguments. These variables are called the formal parameters 
+of the function.
+The formal parameters behave like other local variables inside the func-
+tion and are created upon entry into the function and destroyed upon exit.
+While calling a function, there are two ways that arguments can be 
+passed to a function:
+Call Type Description
+Call by value This method copies the actual value of an argument into 
+the formal parameter of the function. In this case, 
+changes made to the parameter inside the function 
+have no effect on the argument. 
+Call by pointer This method copies the address of an argument into the 
+formal parameter. Inside the function, the address is 
+used to access the actual argument used in the call. 
+This means that changes made to the parameter affect 
+the argument.
+Call by reference This method copies the reference of an argument into the 
+formal parameter. Inside the function, the reference 
+is used to access the actual argument used in the call. 
+This means that changes made to the parameter affect 
+the argument.
+By default, C++ uses call by value  to pass arguments. In general, this 
+means that code within a function cannot alter the arguments used to call 
+the function and above mentioned example while calling max() function 
+used the same method.
+2.2.4 Call by Value and Call by Reference
+When a function is called by its value then that function call is known as 
+call by value.
+When a function is called by its reference/address then that function call 
+is known as call by reference.
+Data Structure and Algorithms Using C++
+
+--- Page 44 ---
+Review of Concepts of ‘C++’ 33
+Difference Between Call by Value and Call by Reference
+In call by value if the value of the variable is changed inside the function 
+than that will not effect to its original value, because the value of the actual 
+parameters are copied to the formal arguments so there is no interlink 
+between them.
+But in call by reference if the value of the variable is changed inside 
+the function then that will be effected to its original value, because in call 
+by reference the addresses of the actual arguments are copied to the for -
+mal arguments that’s why there is a interlink between them. So any change 
+made with the formal argument then that will effect to the actual value.
+Ex:
+Call by value 
+ #include<iostream.h>
+ void main()
+  {
+ int x=5,y=6;
+ void change(int,int);
+ cout<<“\n X=”<<x<<”and Y=”<<y;
+ change(x,y);
+ cout<<“\n X=”<<x<<”and Y=”<<y;
+  }
+ void change(int a,int b)
+   {
+  a=a+5;
+  b=b+5;
+  cout<<“\n X=”<<a<<”and Y=”<<b;
+  }
+OUTPUT
+ X = 5 and Y=6
+ X=10 and Y=11
+ X=5 and Y=6 
+Call by  REFERENCE
+ #include<iostream.h>
+ void main()
+  {
+ int x=5,y=6;
+ void change(int *,int *);
+
+--- Page 45 ---
+34 
+ cout<<“\n X=”<<x<<”and Y=”<<y;
+ change(&x,&y);
+ cout<<“\n X=”<<x<<”and Y=”<<y;
+  }
+ void change(int *a,int *b)
+  {
+  *a=*a+5;
+  *b= *b+5;
+     cout<<“\n X=”<<*a<<”and Y=”<<*b;
+  }
+OUTPUT
+ X = 5 and Y=6
+ X=10 and Y=11
+ X=10 and Y=11
+2.2.5 Default Values for Parameters
+When you define a function you can specify a default value for each of the 
+last parameters. This value will be used if the corresponding argument is 
+left blank when calling to the function.
+This is done by using the assignment operator and assigning values for 
+the arguments in the function definition. If a value for that parameter is 
+not passed when the function is called, the default given value is used, but 
+if a value is specified this default value is ignored and the passed value is 
+used instead. Consider the following example:
+#include <iostream>
+int sum(int a, int b=20)
+{
+  int result;
+  result = a + b;
+  
+  return (result);
+}
+int main ()
+{
+   // local variable declaration:
+   int a = 100;
+   int b = 200;
+   int result;
+ 
+Data Structure and Algorithms Using C++
+
+--- Page 46 ---
+Review of Concepts of ‘C++’ 35
+   // calling a function to add the values.
+   result = sum(a, b);
+   cout << "Total value is :" << result << endl;
+   // calling a function again as follows.
+   result = sum(a);
+   cout << "Total value is :" << result << endl;
+ 
+   return 0;
+}
+When the above code is compiled and executed, it produces following 
+result:
+Total value is :300
+Total value is :120
+2.2.6 Storage Class Specifiers
+The storage class specifiers are the keywords which are used to declare the 
+variables. Without the help of storage class specifier we cannot declare the 
+variables but till now we declare the variables without using the storage 
+class specifier. Because by default the c-language includes the variable into 
+‘auto’ storage class.
+‘C++’-language supports four storage class specifiers as auto, static, 
+extern, register
+AUTO
+Initial Value  : Garbage value
+Storage Area  : Memory
+Life   : With in the block where it is declared
+Scope    : Local
+STATIC
+Initial Value  : Zero
+Storage Area  : Memory
+Life   : With in the block where it is declared
+Scope    :  The value of the variable will persist 
+between different function calls
+EXTERN
+Initial Value  : Zero
+Storage Area   : Memory
+Life   :  The variable can access any where of 
+the program
+Scope    : Global
+
+--- Page 47 ---
+36 
+REGISTER
+Initial Value  : Garbage
+Storage Area   : CPU Memory
+Life   : With in the block where it is declared
+Scope    : Local
+Difference between STATIC and AUTO
+#include<stdio.h>
+ void main()
+  {
+ void change();
+ change();
+ change();
+ change();
+  }
+ Void change()
+  {
+ auto int x=0;
+   printf(“\n X= %d”,x);
+ x++;
+  }
+OUTPUT
+  X=0
+  X=0
+  X=0
+#include<stdio.h>
+ void main()
+  {
+ void change();
+ change();
+ change();
+ change();
+  }
+ Void change()
+  {
+ static int x;
+   printf("\n X= %d",x);
+ x++;
+  }
+OUTPUT
+  X=0
+  X=1
+  X=2
+Data Structure and Algorithms Using C++
+
+--- Page 48 ---
+Review of Concepts of ‘C++’ 37
+2.3 Pointer
+The pointer is a variable which can store the address of another variable. 
+Whatever changed with the value of the variable with the help of the 
+pointer that will directly effect to it.
+2.3.1 Declaration of a Pointer
+Like other variables the pointer variable should also be declared before its 
+use
+SYNTAX
+ Data_type *variable_name;
+ Example: int *p;
+2.3.2 Initialization of a Pointer
+Initialization means to assign an initial value, since the pointer can store 
+only the address so during its initialization we have to assign an address of 
+another variable.
+ Ex: int *x,p;
+  X=&p; /* INITIALIZATION */
+Example :(IN C)
+WRITE A PROGRAM TO INPUT A NUMBER AND DISPLAY IT.
+ #include<iostream.h>
+ void main()
+  {
+ int *p,x;
+ p=&x;
+ printf(“\n Enter a number”);
+ scanf(“%d”,&x);
+printf(“\n THE VALUE OF X(THROUGH POINTER) IS %d”,*p);
+ printf(“\n THE VALUE OF X IS %d”,x);
+   }
+NOTE : After declaration of the pointer variable, if we write simply 
+the variables name than it will represent to address and *variable 
+will represent to value. But in C++ always we have to use *variable 
+since it deals with object.
+INSIDE MEMORY
+ P X
+ 
+ P=&X
+732                1087    P = 1087, *P=5
+X=5 AND &X = 1087
+1087 5
+
+--- Page 49 ---
+38 
+OUTPUT
+ Enter a number 5
+ 
+ THE VALUE OF X(THROUGH POINTER) IS 5
+ THE VALUE OF X IS 5
+(IN C++)
+WRITE A PROGRAM TO INPUT A NUMBER AND DISPLAY IT.
+ #include<iostream.h>
+ void main()
+  {
+ int *p,x;
+ p=&x;
+ cout<<”\n Enter a number”;
+ cin>>*x;
+cout<<”\n THE VALUE OF X(THROUGH POINTER) IS ”<<*p;
+cout<<”\n THE VALUE OF X IS”<<*x;
+   }
+OUTPUT
+ Enter a number 5
+ 
+ THE VALUE OF X(THROUGH POINTER) IS 5
+ THE VALUE OF X IS 5
+2.3.3 Arithmetic With Pointer
+In general the arithmetic operations include Addition, Subtraction, Multi-
+plication, and Division. But in case of pointer we can perform only the addi-
+tion and subtraction operations. That means when we perform an addition/
+subtraction operation with the pointer then it shifts the locations because 
+pointer means an address. If we add one to the integer pointer then it will 
+shift two bytes (int occupies two bytes in memory), so for float 4 bytes, char 
+1 byte, long double 4 bytes and accordingly it will shift the positions.
+Ex: Let int *p,x ;
+        P=&x;    x p
+             756        1065
+ Now p = 756
+  P + 1 =  758
+  P + 2 = 760
+  P+5 = 766
+  p-6 = 754
+INSIDE MEMORY
+ P X
+ 
+ P=&X
+732                1087    P = 1087, *P=5
+X=5 AND &X = 1087
+1087 5
+756
+Data Structure and Algorithms Using C++
+
+--- Page 50 ---
+Review of Concepts of ‘C++’ 39
+NOTE : Pointer means the address so we can perform any type of opera -
+tion with *p (value at address)
+2.3.4 Passing of a Pointer to Function
+As like normal variables we can also pass a pointer to the function as its 
+argument.
+DECLARATION 
+Return_type function_name(data_type *, data_type *,…………);
+CALL
+Variable = function_name(ptrvar, ptrvar, ptrvar,………);
+DEFINITION
+Return_type function_name(data_type *var, data_type *var,…………)
+  {
+ body of function ;
+ return(value/var/exp);
+    }
+Example:
+WRITE A PROGRAM TO FINDOUT THE FACTORIAL OF A NUMBER
+#include<iostream.h>
+void main()
+  {
+long int fact(int *);
+int *n;   
+long int f;
+cout<<“\n Enter a number”;
+cin>>*n;
+f=fact(n);
+cout<<“\n Factorial Is”<<f;
+   }
+long int fact(int *p)
+ {
+ int i;
+long int f=1;
+  for(i=1;i<=*p;i++)
+       f*=i;
+ return(f);
+  }
+
+--- Page 51 ---
+40 
+ OUTPUT
+  Enter a number 5
+  Factorial is 120
+2.3.5 Returning of a Pointer by Function
+Declaration
+Return_type * function_name(data type,data type……………);
+CALL
+Ptr_Variable = function_name(var1,var2,…………); 
+DEFINITION
+Return_type * function_name(data_type v1,……………………………)
+  {
+ body of function 
+  return(pointer_var);
+  }
+ 
+EXAMPLE
+WRITE A PROGRAM TO FINDOUT THE FACTORIAL OF A NUMBER
+#include<iostream.h>
+void main()
+  {
+long int * fact(int *);
+int n;   
+long int *f;
+cout<<“\n Enter a number”;
+cin>>n;            
+f=fact(&n);   
+cout<<“\n Factorial Is %ld”<<*f;
+   }
+long int * fact(int *p)
+ {
+ int i;
+long int f=1;   
+  for(i=1;i<=*p;i++)
+       f*=i;   
+ return(&f);
+  }
+When the function f=fact(n) is called then the address which is inside the 
+pointer variable n that will copied to the pointer variable p(formal argument)
+So in this case what ever changes made with ‘p’ that will directly effect to ‘n’
+Data Structure and Algorithms Using C++
+
+--- Page 52 ---
+Review of Concepts of ‘C++’ 41
+OUTPUT
+ Enter a number 5
+ Factorial is 120
+2.3.6 C++ Null Pointer
+It is always a good practice to assign the pointer NULL to a pointer variable 
+in case you do not have exact address to be assigned. This is done at the 
+time of variable declaration. A pointer that is assigned NULL is called a 
+null pointer.
+The NULL pointer is a constant with a value of zero defined in several 
+standard libraries, including iostream. Consider the following program:
+#include <iostream>
+using namespace std;
+int main ()
+{
+   int  *ptr = NULL;
+   cout << “The value of ptr is “ << ptr ;
+ 
+   return 0;
+}
+When the above code is compiled and executed, it produces the follow-
+ing result:
+The value of ptr is 0
+On most of the operating systems, programs are not permitted to access 
+memory at address 0 because that memory is reserved by the operating 
+system. However, the memory address 0 has special significance; it signals 
+that the pointer is not intended to point to an accessible memory location. 
+But by convention, if a pointer contains the null (zero) value, it is assumed 
+to point to nothing.
+To check for a null pointer you can use an if statement as follows:
+if(ptr)     // succeeds if p is not null
+if(!ptr)    // succeeds if p is null
+Thus, if all unused pointers are given the null value and you avoid the 
+use of a null pointer, you can avoid the accidental misuse of an uninitial -
+ized pointer. Many times uninitialized variables hold some junk values and 
+it becomes difficult to debug the program.
+
+--- Page 53 ---
+42 
+2.4  Structure
+A structure is a collection of data items(fields) or variables of different 
+data types that is referenced under the same name. It provides convenient 
+means of keeping related information together.
+ DECLARATION
+   struct tag_name
+    {
+       Data type member1 ;
+    Data type member2;
+    …………………………
+    …………………………
+    …………………………
+    };
+The keyword struct tells the compiler that a structure template is being 
+defined, that may be used to create structure variables. The tag_name iden-
+tifies the particular structure and its type specifier. The fields that comprise 
+the structure are called the members or structure elements. All elements in 
+a structure are logically related to each other.
+Let us consider an employee data base, which consists of the fields like 
+name, age, and salary, so for this the corresponding structure declaration 
+will be 
+  struct emp
+   {
+  char name[25];
+  int age;
+  float salary;
+   };
+Here the keyword struct defines a structure to hold the details of the 
+employee and the tag_name emp is the name of the structure.
+Over all struct emp is a user defined data type.
+So to use the members of this structure we must have to declare the vari-
+able of struct emp type and the structure variable declaration is as same as 
+the normal variable declaration which takes the form as
+struct tag_name variable_name;
+Ex : struct emp e;
+Here e is a structure variable which has the ability to hold name, age, and 
+salary and to access these individual members of the structure the way is 
+Data Structure and Algorithms Using C++
+
+--- Page 54 ---
+Review of Concepts of ‘C++’ 43
+Structure_variable . member_name;
+i.e/ To access name,age,salary the variable will be e.name,e.age,e.salary
+Example: W AP TO INPUT THE NAME,AGE AND SALARY OF A 
+EMPLOYEE AND DISPLAY .
+ #include<iostream.h>
+ struct emp // CREATION OF STRUCT EMP DATA TYPE
+   {
+  char name[25];
+  int age;
+  float salary;
+   };
+void main()
+   {
+ struct emp e;   //Declaration of the 
+structure variable
+cout<<"\n Enter the name,age and salary";
+gets(e.name);   //Input the name
+cin>>e.age>>e.salary;  // Input the age 
+and salary
+cout<<"\n NAME IS "<<e.name;  //Display name
+ cout<<"\n AGE IS "<<e.age; //Display age
+cout<<"\n SALARY IS "<<e.salary;  //Display salary
+ 
+  } 
+OUTPUT
+ Enter the name ,age and salary
+ H.Narayanan
+ 56
+ 72000
+ 
+ NAME IS H.Narayanan
+ AGE IS 56
+ SALARY IS 72000.000000
+The above discussed structure is usually used in ‘C’ but the ‘C++’ pro -
+vides its structure with a little bit modification with the structure of ‘C’ that 
+is in C++ we may also store the member functions  as a member of it.
+
+--- Page 55 ---
+44 
+Ex: W AP TO INPUT A NUMBER AND DISPLAY IT by using 
+FUNCTION
+No doubt that this program is not efficiently used with the structure 
+because the structure is used when there is a requirement to handle more 
+than one element of different type. But in the above program only  single 
+variable is to be used but for easy understanding the difference of structure 
+in ‘c’ and structure in ‘c++’ this one is better.
+IN ‘C’
+ #include<stdio.h>
+ struct print
+   {
+ int x;
+   } ;
+void main()
+ {
+ struct print p;
+ void display(struct print);
+ printf("\n Enter the number");
+ scanf("%d",&p.x);
+ display(p);
+ }
+void display(struct print p)
+ {
+printf("THE ENTERED NUMBER IS %d",p.x);
+ }
+OUTPUT 
+Enter the number 23
+THE ENTERED NUMBER IS 23
+IN C++ 
+#include<iostream.h>
+ struct print
+   {
+ int x;
+void display( )// Arguments are not required 
+because both x and display() are in the same scope
+ {
+cout<<"\n Enter the number";
+cin>>x;
+cout<<"THE ENTERED NUMBER IS "<<x;
+Data Structure and Algorithms Using C++
+
+--- Page 56 ---
+Review of Concepts of ‘C++’ 45
+ }
+  } ;
+void main()
+ {
+  print p;//In C++ to declare the structure vari-
+able struct is not mandatory
+ p.display();
+ }
+    
+OUTPUT 
+Enter the number 23
+THE ENTERED NUMBER IS 23
+Observe that the C++-structure is better than the C-Structure but it 
+has also some limitation. That means the above program can also be writ-
+ten as
+To overcome this problem C++ implements a new, abundantly used 
+data type as “class” which is very much similar to the structure but it 
+allows the security of members i.e/the programmer has a control over its 
+members.
+NOTE: C++ structure also provides data hiding and encapsulation but 
+other properties like the  Inheritance, Polymorphism are not supported by 
+it. So to overcome this C++ introduces the CLASS.
+Inside the void main() instead of calling the function as p.display() we 
+may also replace it as 
+cout<<”Enter the number”;
+cin>>p.x;
+cout<<”THE ENTERED NUMBER IS”<<p.x;
+Which is not a small mistake it can make frustrate to the program -
+mer that even if the programmer provides a function to does the work 
+but instead of using that we are using according to our logic. Here the 
+importance of the designer is Nill and this happens since the structure 
+allow all of its members to use any where of the program.  But if the data 
+member ‘x’ will not allowed to use inside the main() then  we are bound 
+to use the function which is provided by the programmer.
+So Finally the main drawback is that structure does not allow any 
+restriction to its members.
+
+--- Page 57 ---
+46 
+2.4.1 The typedef Keyword
+There is an easier way to define structs or you could “alias” types you create. 
+For example:
+typedef struct
+{
+   char  title[50];
+   char  author[50];
+   char  subject[100];
+   int   book_id;
+}Books;
+Now you can use Books directly to define variables of Books type without 
+using struct keyword. Following is the example:
+Books Book1, Book2;
+Y ou can use typedef keyword for non-structs as well as follows:
+typedef long int *pint32;
+ 
+pint32 x, y, z;
+x, y, and z are all pointers to long ints
+UNION
+The UNION is also a user defined data type just like the structure, which 
+can store more than one element of different data types. All the operations 
+are same as the structure. The only difference between the structure and 
+union is based upon the memory management i.e/ the structure data type 
+will occupies the sum of total number of bytes occupied by its individual 
+data members where as in case of union it will occupy the highest number 
+of byte occupied by its data members.
+Example 7.11
+Write a program to demonstrate the difference between the structure and 
+Union.
+#include<iostream.h>
+struct std
+  {
+   char name[20],add[30];
+Data Structure and Algorithms Using C++
+
+--- Page 58 ---
+Review of Concepts of ‘C++’ 47
+   int roll,total;
+   float avg;
+  };
+union std1
+   {
+   char name[20],add[30];
+   int roll,total;
+   float avg;
+   };
+ void main()
+  {
+   struct std s;
+   union std1 s1;
+cout<<”\nThe no.of bytes occupied by the structure 
+is”<<sizeof(struct std));
+cout<<”\nThe no.of bytes occupied by the union 
+is”<<sizeof(union std1));
+  }
+OUTPUT
+ The no.of bytes occupied by the structure is 58
+ The no.of bytes occupied by the structure is 30
+NOTE: While using UNION we have used the values of the variables 
+immediately before entering any value to any member. Because the union 
+shares a single memory area for all the data members.
+2.5 Questions
+1. What are the advantages of unions over structures?
+2. What is a pointer and its types?
+3. What is the difference between Library functions and User-
+defined functions?
+4. What is the difference between call by value and call by 
+reference.
+5. What is the difference between array and pointer?
+6. Is it better to use a macro or a function?
+7. What is a string?
+8. Discuss different types of storage class specifiers.
+9. Discuss local and global variables.
+10. Is it of benefit to use structure or array? Justify your answer.
+
+--- Page 59 ---
+49
+3
+Sparse Matrix
+3.1 What is Sparse Matrix
+In computer programming, a matrix can be defined with a two-  
+dimensional array. Any array with ‘m’ columns and ‘n’ rows represents a 
+mXn matrix. There may be a situation in which a matrix contains more 
+number of ZERO values than NON-ZERO values. Such matrix is known 
+as sparse matrix.
+Sparse matrix is a matrix which contains very few non-zero elements.
+When a sparse matrix is represented with two-dimensional array, we 
+waste lot of space to represent that matrix. For example, consider a matrix 
+of size 100 X 100 containing only 10 non-zero elements.
+In this matrix, only 10 spaces are filled with non-zero values and remain-
+ing spaces of matrix are filled with zero. That means, totally we allocate 100 
+X 100 X 2 = 20000 bytes of space to store this integer matrix, and to access 
+these 10 non-zero elements we have to make scanning for 10,000 times.
+3.2 Sparse Matrix Representations
+A sparse matrix can be represented by using TWO representations, such as 
+1. Triplet Representation
+2. Linked Representation
+Method 1: Triplet Representation
+In this representation, we consider only non-zero values along with their 
+row and column index values. In this representation, the 0th row stores total 
+rows, total columns, and total non-zero values in the matrix.
+Sachi Nandan Mohanty and Pabitra Kumar Tripathy. Data Structure and Algorithms Using C++: 
+A Practical Implementation, (49–58) © 2021 Scrivener Publishing LLC
+
+--- Page 60 ---
+50 
+For example If a Matrix
+7 0 0 1 0 2
+0 1 9 0 0 0
+0 0 0 7 0 0
+0 0 0 0 0 0
+8 0 0 0 0 0
+0 0 3 0 0 0
+Sparse Matrix of the Above array is 
+6 6 8
+0 0 7
+0 3 1
+0 5 2
+1 1 1
+1 2 9
+2 3 7
+4 0 8
+5 2 3
+The elements arr[0][0] and arr[0][1] contain the number of rows and 
+columns of the sparse matrix respectively. The element arr[0][2] contains 
+the number of non zero elements in the sparse matrix.
+The declaration of the sparse matrix takes the form 
+     Data type sparse[terms + 1][3];
+Where the term is the number of non zero elements in the matrix.
+Method 2: Using Linked Lists
+In linked list, each node has four fields. These four fields are defined as:
+• Row: Index of row, where non-zero element is located
+• Column: Index of column, where non-zero element is located
+• Value: Value of the non zero element located at index –  
+(row,column)
+• Next node: Address of the next node
+Data Structure and Algorithms Using C++
+
+--- Page 61 ---
+Sparse Matrix 51
+START
+00
+00 5
+30 4
+70
+00
+02 6
+00 0
+00
+NODE
+STRUCTURE ROWC OLUMN VALUE Address ofnext node
+02 3
+NULL
+04 41
+1
+25 13
+332 26
+7
+3.3 Algorithm to Represent the Sparse Matrix
+STEP-1    Input the array of mXn elements.
+STEP-2    [COUNT THE NUMBER OF NON ZERO ELEMENTS]
+                             REPEAT For I = 1 to m
+                                 REPEAT For j = 1 to n
+                                          If arr[i][j] !=0 THEN:
+                                              Count := count+ 1
+    [END OF IF]
+       [END OF LOOP]
+   [END OF LOOP]
+STEP-3  SP[0][0] := m
+                              SP[0][1]:=n
+                              SP[0][2]  :=  COUNT
+STEP-4  K:=1
+                              REPEAT For I = 0 to m
+               REPEAT For j = 0 to n
+                             If  arr[i][j] !=0 THEN:
+                                    Sp[k][0] := I
+                                      Sp[k][1]:=j
+                                Sp[k][2] := arr[i][j]
+                                  K:=k+1
+          [END OF IF]
+      [END OF LOOP]
+  [END OF LOOP
+STEP-5  REPEAT For I = 1 to k+1
+                                    REPEAT For j = 1 to 3
+                                 Print sp[i][j]
+       [END OF LOOP]
+   [END OF LOOP
+STEP-6  EXIT
+
+--- Page 62 ---
+52 
+3.4 Programs Related to Sparse Matrix
+Program for Array Representation of Sparse Matrix
+#include<iostream>
+#include<iomanip>
+using namespace std;
+//driver program
+int main()
+ {
+   int arr[10][10],i,j,row,col,count=0,k=0,sp[15][3];
+   //ask user about the numbe o3f ows and columns sparse matx
+   cout<<”\nENTER HOW MANY ROWS AND COLUMNS”;
+   //read row and col
+   cin>>row>>col;
+   //loop to read the normal matrix
+     for(i=0;i<row;i++)
+ for(j=0;j<col;j++)
+   {
+     cout<<endl<<”Enter a number”;
+     cin>>arr[i][j];
+   }
+   //loop to print the normal matrix that read from user
+   cout<<”\nTHE ENTERED ARRAY ELEMENTS ARE\n”;
+       for(i=0;i<row;i++)
+       {
+   for(j=0;j<col;j++)
+     cout<<setw(4)<<arr[i][j];
+     cout<<endl;
+       }
+//loop to count the number of non zero elements in the matrix
+     for(i=0;i<row;i++)
+       for(j=0;j<col;j++)
+     if(arr[i][j]!=0)//condition for non zero elements
+   count++; //increase the count
+    
+    //set the first row of sparse matrix
+sp[0][0]=row;  
+    sp[0][1]=col;
+    sp[0][2]=count;
+     k=1;//k points to second row of sparse matrix
+     //loop to fill theother rows of sparse matrix
+       for(i=0;i<row;i++)
+   for(j=0;j<col;j++)
+       {
+  if(arr[i][j]!=0)
+     {
+        sp[k][0]=i;
+Data Structure and Algorithms Using C++
+
+--- Page 63 ---
+Sparse Matrix 53
+        sp[k][1]=j;
+        sp[k][2]=arr[i][j];
+        k++;
+      }
+   }
+   //print the sparse matrix
+     cout<<”\nTHE SPRASE MATRIX IS\n”;
+       for(i=0;i<=count;i++)
+  {
+  for(j=0;j<3;j++)
+    cout<<”  “<<sp[i][j];
+  cout<<endl;
+ }
+      }
+OUTPUT
+
+--- Page 64 ---
+54 
+Transpose of a Sparse Matrix
+#include<iostream>
+#include<iomanip>
+using namespace std;
+int  main()
+ {
+    int arr[10][10],i,j,row,col,count=0,k=0,sp[15]
+[3],tran[10][3];
+  
+      //ask user about the numbe o3f ows and columns sparse matx
+   cout<<”\nENTER HOW MANY ROWS AND COLUMNS”;
+   //read row and col
+   cin>>row>>col;
+   //loop to read the normal matrix
+     for(i=0;i<row;i++)
+ for(j=0;j<col;j++)
+   {
+     cout<<endl<<”Enter a number”;
+     cin>>arr[i][j];
+   }
+   //loop to print the normal matrix that read from user
+ cout<<”\nTHE ENTERED ARRAY ELEMENTS ARE\n”;
+       for(i=0;i<row;i++)
+       {
+ for(j=0;j<col;j++)
+     cout<<setw(4)<<arr[i][j];
+     cout<<endl;
+       }
+//loop to count the number of non zero elements in the matrix
+     for(i=0;i<row;i++)
+       for(j=0;j<col;j++)
+     if(arr[i][j]!=0)//condition for non zero elements
+   count++; //increase the count
+    
+    //set the first row of sparse matrix
+sp[0][0]=row;  
+    sp[0][1]=col;
+    sp[0][2]=count;
+     k=1;//k points to second row of sparse matrix
+     //loop to fill theother rows of sparse matrix
+       for(i=0;i<row;i++)
+   for(j=0;j<col;j++)
+       {
+  if(arr[i][j]!=0)
+Data Structure and Algorithms Using C++
+
+--- Page 65 ---
+Sparse Matrix 55
+     {
+        sp[k][0]=i;
+        sp[k][1]=j;
+        sp[k][2]=arr[i][j];
+        k++;
+      }
+   }
+   //print the sparse matrix
+     cout<<”\nTHE SPRASE MATRIX IS\n”;
+       for(i=0;i<=count;i++)
+   {
+  for(j=0;j<3;j++)
+    cout<<”  “<<sp[i][j];
+  cout<<endl;
+  }
+       /*TRANSPOSE*/
+      tran[0][0]=col;
+      tran[0][1]=row;
+      tran[0][2]=count;
+ k=1;
+   for(i=0;i<col;i++)
+     for(j=1;j<=count;j++)
+       {
+     if(sp[j][1]==i)
+   {
+    tran[k][0]=sp[j][1];
+    tran[k][1]=sp[j][0];
+    tran[k][2]=sp[j][2];
+    k++;
+    }
+   }
+    cout<<”\nTRANSPOSE OF THE SPRASE MATRIX 
+IS\n”;
+    for(i=0;i<=count;i++)
+    {
+      for(j=0;j<3;j++)
+       cout<<setw(5)<<tran[i][j];
+       cout<<endl;
+     }
+      }
+
+--- Page 66 ---
+56 
+OUTPUT
+3.5 Why to Use Sparse Matrix Instead of Simple Matrix?
+• Storage: There are lesser non-zero elements than zeros and 
+thus lesser memory can be used to store only those non-zero 
+elements.
+• Computing time: Computing time can be saved by logically 
+designing a data structure traversing only non-zero elements.
+Data Structure and Algorithms Using C++
+
+--- Page 67 ---
+Sparse Matrix 57
+3.6 Drawbacks of Sparse Matrix
+Memory Drawbacks of a Sparse Matrix
+Every element of a program array takes up memory and a sparse matrix 
+can end up taking unnecessary amounts of memory space. For example, 
+a 10×10 array can occupy 10 x 10 x 1 byte (assuming 1 byte per element) 
+= 100 bytes. If a majority of these elements say 70 of 100, are zeroes, then 
+70 bytes of space is essentially wasted. Sometimes large sparse matrices are 
+too big to fit into memory.
+Computational Drawbacks of a Sparse Matrix
+Performing algorithmic computations (like matrix multiplication, for 
+example) takes up a lot of unnecessary time for each zero computation. 
+Anything multiplied by zero is zero, but this operation still has to be per -
+formed which is seen as a waste of computational time.
+A sparse matrix can be compressed and memory reduction can be 
+achieved by storing only the non-zero elements. However, this will also 
+require programming additional structures to recover the original matrix 
+when elements have to be accessed, but overall a compressed sparse matrix 
+can ultimately increase computational speed.
+Sparse matrices are very common in machine learning algorithms. Now 
+that your question ‘what is sparse matrix’ is answered, let’s understand 
+some examples and its uses.
+3.7 Sparse Matrix and Machine Learning
+As mentioned earlier, sparse matrices are a common occurrence in Machine 
+Learning algorithms.
+1. In Data Storage
+Activity count arrays often end up being a sparse matrix. For example:
+(a)  In a movie application like Netflix, the array that stores the check of 
+which movies are watched and not watched in a catalog.
+(b)  In e-commerce programs, data that represents the products purchased 
+and not purchased by a user.
+(c) In a music app, the count of songs listened and not listened to by a user.
+
+--- Page 68 ---
+58 
+2. In Data Preparation
+Sparse matrices are often seen in encoding schemes, which are used for 
+data preparation. 
+Examples:
+(a)  One-hot encoding, which is used to represent categorical data as sparse 
+binary vectors.
+(b)  Count encoding, which is used in the representation of the frequency 
+of words in a document.
+(c)  TF-IDF encoding, which is used in representing frequency scores of 
+words in the vocabulary.
+3. Machine Learning Study Areas
+Sometimes, machine learning study areas require the development of spe-
+cialized methods to address sparse matrices as input data. Examples are:
+(a)  Natural Language Processing when working with text documents
+(b)  Recommendation systems for product catalog programs.
+(c)  In Computer Vision when scanned images have a lot of dark or black 
+pixels.
+Different Methods of Sparse Matrix Representation & Compression
+Storing a sparse matrix as is takes up unnecessary space and increases 
+computational time. There are ways for sparse matrix representation in a 
+‘compressed’ format, which improves its efficiency. 
+3.8 Questions
+1. What is a sparse Matrix?
+2. Write some implementation areas of sparse matrix.
+3. How to represent sparse matrix.
+4. Differentiate with suitable example about the representation 
+of sparse matrix.
+5. Is it more beneficial to use sparse matrix than dense matrix? 
+Explain your answer.
+6. What are the limitations of sparse matrix?
+7. Specify a few limitations of sparse matrix.
+Data Structure and Algorithms Using C++
+
+--- Page 69 ---
+59
+4
+Concepts of Class
+4.1 Introduction to CLASS
+Like structure the class is also a user defined data type or Abstract Data 
+Type (which derives/combines the properties of different data types into 
+a single unit), which combines both the data members and member func-
+tions into a single unit. The Object oriented properties like Data encapsu-
+lation and Data Hiding is fully supported by the class.
+Like structure the class has also its declaration and before its use we must 
+have to declare it. The declaration of the class is very simple except that all 
+the members of the class can be arranged in different sections (block) to 
+achieve the data hiding. 
+The main purpose of C++ programming is to add object orientation to 
+the C programming language and classes are the central feature of C++ 
+that supports object-oriented programming and are often called user-  
+defined types.
+A class is used to specify the form of an object and it combines data 
+representation and methods for manipulating that data into one neat 
+package. The data and functions within a class are called members of the 
+class.
+When you define a class, you define a blueprint for a data type. This does 
+not actually define any data, but it does define what the class name means, 
+that is, what an object of the class will consist of and what operations can 
+be performed on such an object.
+Sachi Nandan Mohanty and Pabitra Kumar Tripathy. Data Structure and Algorithms Using C++: 
+A Practical Implementation, (59–90) © 2021 Scrivener Publishing LLC
+
+--- Page 70 ---
+60 
+4.2 Access Specifiers in C++
+As the name specifies these are the controllers of the members for a class. 
+To achieve the properties of the OOPs the class provides three different 
+Access Specifiers such as 
+• Private
+• Public
+• Protected
+These are also known as Member Access Control.
+PRIV ATE: 
+The members which are declared with in the private group they are not 
+allowed to use outside of the class only the members of the class can share 
+it which is the data hiding.
+PUBLIC:
+The members which are declared with in this category are allowed to use 
+any where of the program.
+PROTECTED:
+This section is as same as the private category if used in single classes. The 
+only difference to private is that, these members can be transferred to the 
+derived classes incase of Inheritance.
+4.3 Declaration of Class
+ class class_name
+  {
+ private :
+  data members;
+  member functions();
+ public :
+  data members;
+  member functions();
+ protected:
+  data members;
+  member functions();
+  };
+Data Structure and Algorithms Using C++
+
+--- Page 71 ---
+Concepts of Class 61
+Member Function
+A member function of a class is a function that has its definition or its 
+prototype within the class definition like any other variable. It operates on 
+any object of the class of which it is a member, and has access to all the 
+members of a class for that object.
+Example :
+  class print
+   {
+  private:
+   int x;
+  public :
+   void display()
+   {
+    cout<<“\n Enter the number”;
+    cin>>x;
+    cout<<“THE ENTERED NUMBER IS ”<<x;
+   }
+  };
+The function display() is kept in the public section because by using this 
+only one can print the value of x but x is in the private category so any one 
+want to display a number is bound to use the display(). This is the benefit 
+of the class.
+Difference between the class and structure
+Class Structure
+The Keyword class is used The Keyword struct is used
+It provides the inheritance, 
+polymorphism
+It does not provide these concepts
+By default the members of class are 
+private.
+By default the members of structure 
+are public.
+Data abstraction is supported Not supported
+Declaration of an OBJECT
+The object is an instance of a class. Through the object one can use the 
+members of the class.
+Syntax : class_name object_name;
+
+--- Page 72 ---
+62 
+Accessing the members of a class
+The members of a class can be accessed with the help of the objects like the 
+structure. That means object_name.member_name;
+Difference between PRIV ATE, PUBLIC, AND PROTECTED in pro -
+grammatically way.
+Example 
+  class differ
+   {
+  private :
+   int x;
+  public :
+  int y;
+  protected:
+   int z;
+   };
+ void main()
+ {
+ differ obj;  //Declaration of the object
+  cout<<”Enter a number for x”;
+  cin>>obj.x; //Error, because x is private
+  cout<<”Enter a number for y”;
+  cin>>obj.y; //No Error, Since Y is public
+  cout<<”Enter a number for z”;
+  cin>>obj.z; //Error, because z is protected
+ }
+4.4 Some Manipulator Used In C++
+The C++ allows some manipulator functions which are used for to have 
+some extra formatting during the output. Out of them most commonly 
+used manipulator functions are 
+• endl
+• setw()
+• setfill()
+• dec
+• oct
+• hex
+• setprecision()
+Data Structure and Algorithms Using C++
+
+--- Page 73 ---
+Concepts of Class 63
+These manipulators are defined inside the <iomanip.h>  so before its use 
+we must have to include<iomanip.h>
+endl
+This manipulator allows a new line. It does the same work as “\n” .
+Ex : cout<<”HELLO”<<endl<<”WEL COME”;
+OUTPUT
+ HELLO
+ WEL COME
+setw()
+This manipulator is used to allow some gap in between two numbers.
+Ex : int x=5,y=4
+ cout<<x<<setw(5)<<y;
+OUTPUT
+ 5_ _ _ _ 4 (_ indicates the white space)
+setfill()
+This manipulator is used to allow to fill the gap by a character which is 
+provided by the setw() manipulator.
+Ex :
+ int x=5,y=4;
+ cout<<setfill(‘$’);
+ cout<<x<<setw(5)<<y;
+OUTPUT 
+ 5$$$$4
+Dec,oct,hex
+These manipulators are used to display the integer in different base values.
+Dec : Display the number in integer format
+Oct : Display the number in Octal format
+Hex : Display the number in Hexadecimal format
+Ex :
+ void main()
+   {
+ int  x = 14;
+ cout<<”DECIMAL ”<<dec<<x;
+ cout<<endl<<”OCTAL”<<oct<<x;
+ cout<<endl<<”HEXADECIMAL”<<hex<<x;
+   }
+OUTPUT
+ DECIMAL 14
+ OCTAL  16
+ HEXADECIMAL e
+Setprecision()
+
+--- Page 74 ---
+64 
+This manipulator is used to controls the number of digits to be displayed 
+after the decimal place of a floating point number.
+Ex :
+ float x=5.23456;
+ cout<<setprecision(2)<<x;
+ cout<<endl<<setprecision(0)<<x;
+ cout<<endl<<setprecision(6)<<x;
+OUTPUT
+   5.23
+   5.23456
+   5.23456 
+4.5 Defining the Member Functions Outside 
+of the Class
+We already know that a class consists of different data members and mem-
+ber functions and when we provide the definitions of the member func -
+tions inside the class then the class became a complex and it also difficult 
+to handle the errors.
+So it will be better to declare the member functions inside the class 
+but provide the definitions outside of the class. To achieve this the Scope 
+Resolution Operator is used.
+The process to define the member functions outside of the class is 
+Return_type  class_name :: function_name(data_type var1,data_type 
+var2……)
+  {
+ Body of function ;
+ Return(value/variable/expression;
+  }  
+4.6 Array of Objects
+Like other normal variable the objects can also be used as an array and the 
+declaration is also as same as the normal array.
+Declaration 
+ Class_name object[size];
+Data Structure and Algorithms Using C++
+
+--- Page 75 ---
+Concepts of Class 65
+Example
+Write a program to input  the detail of 5 students and display them.
+class student
+   {
+ char name[20],add[30];
+ int roll,age;
+   public :
+ void input();
+ void print();
+   };
+void student :: input()
+   {
+cout<<endl<<”Enter the name and address”;
+gets(name);
+gets(add);
+cout<<endl<<”Enter the roll and age”;
+cin>>roll>>age;
+   }
+void student :: print()
+   {
+cout<<endl<<”NAME IS ”<<name;
+cout<<endl<<”ADDRESS”<<add;
+cout<<endl<<”AGE IS ”<<age;
+cout<<endl<<”ROLL IS”<<roll;
+   }
+void main()
+  {
+student obj[5];
+int i;
+for(i=0;i<5;i++)
+  {
+obj[i].input();
+  }
+for(i=0;i<5;i++)
+  {
+ obj[i].print();
+  }
+ }
+
+--- Page 76 ---
+66 
+4.7 Pointer to Object
+If the object is a pointer then the members of the class can be accessed by 
+using the indirection operator as
+ Object_name -> member_name;
+Ex : W AP to check a number as prime or not
+ #include<iostream.h>
+ class prime
+   {
+ private:
+    int x;
+ 
+public :
+    void input();
+              void check();
+            };
+void prime :: input()
+   {
+ cout<<”Enter the number”;
+cin>>x;
+   }
+void prime :: check()
+   {
+int i;
+for(i=2 ; i<=x;i++)
+ {
+  if(x%i==0)
+      break;
+ }
+if(i==x || x==1)
+  cout<<”PRIME”;
+else
+ cout<<”NOT PRIME”;
+}
+void main()
+   {
+prime *p;
+p->input();
+p->check();
+  }
+Data Structure and Algorithms Using C++
+
+--- Page 77 ---
+Concepts of Class 67
+4.8 Inline Member Function
+C++ provides a facility to use the keyword inline for its conventional users. 
+C++ provides an inline function where the compiler writes the code for the 
+function directly in the place where it is invoked, rather than generating 
+the target function for a function and invoking it every time it is needed.
+When a normal function calls it always shift the control from its call 
+to definition part which will take more extra time in executing a series of 
+instructions for shifting the control, saving registers, returning the value to 
+the calling function and arranging the values.
+To avoid this we may replace the task with macros as
+For ex :  #define min(a,b) (a<b ? a:b)
+This saves the overhead of a function call by simply replacing the 
+expression 
+min(a,b) (a<b ? a : b) textually in the program
+The major drawbacks of the macro is that they are not really functions 
+and therefore the usual error checking does not occur during compilation.
+So to avoid this C++ introduces a new feature called as Inline function 
+which is expanded in line when it is invoked. That is when a function calls 
+then the compiler replaces its call with the function definition. Generally 
+the inline is used for those functions which having smaller in size. The 
+inline is not a command. It is a request to compiler and whether the func-
+tion will be treated as inline or not that depends upon the compiler even if 
+we mention the inline.
+In C++ when we define the member functions of a class inside the body 
+then by default these will treated as Inline but when we will define the 
+functions outside of the body of class then we have to define the function 
+as inline explicitly.
+When we define the member function inside a class then by default 
+the C++ compiler will treat it as inline but when we provide the defi -
+nition of a function outside of a class then we may also set it as Inline 
+by the keyword inline.
+inline return_type class_name :: function_name(data_type 
+var………………)
+  {
+ Body of function; 
+Return(value/variable/expression);
+  }
+
+--- Page 78 ---
+68 
+Example
+W AP to find out the GCD of two numbers
+#include<iostream.h>
+class GCD
+  {
+private :
+   int a,b;
+public :
+   void input();
+   void find();
+  };
+inline void GCD :: input()
+   {
+ cout<<endl<<”Enter two numbers”;
+ cin>>a>>b;
+  }
+inline void GCD :: find()
+   {
+int r;
+  if(a<b)  //Makes a as greater than b
+    {
+ r=a;
+ a=b;
+ b=r;
+    }
+   r = a%b;
+    while(r!=0)
+      {
+    a = b;
+    b = r;
+    r = a%b;
+      }
+cout<<”GCD”<<b;
+  }
+void main()
+  {
+ GCD obj;
+obj.input();
+obj.find();
+  }
+Syntax : 
+  inline return_type function_name(argument list….)
+  {
+        Body of function;
+      Return(value/variable/expression);
+  }
+Data Structure and Algorithms Using C++
+
+--- Page 79 ---
+Concepts of Class 69
+There are some restrictions to use the inline such as
+• If a function having a static variable
+• If a function having loop, switch or goto statement, condi -
+tional statement
+• If a function is recursive
+• If a function having return statement.
+4.9 Friend Function
+In normal circumstance we may hide/protect the data members by declar-
+ing them in Private. But the friend can access any of the members of the 
+class, regardless of their access specification. The keyword friend makes a 
+function as a non member of the class even if its declaration is inside the 
+class.
+The friend function can be declared at any where of the class. Since it is a 
+non member of the class so we must have to pass an object as its argument 
+to extract the members of the class.
+Syntax
+friend return_type function_name(data_type var,………..);
+The keyword friend can be studied in four different ways as
+• Simple friend function
+• Friend with inline substitution
+• Granting friendship to another class
+• Two or more class having same friend function.
+4.9.1 Simple Friend Function
+ #include<iostream.h>
+class a
+ {
+  private:
+     friend void display(a obj);
+     int x;
+ };
+   void display(a obj)
+      {
+ cout<<”Enter a number”;
+ cin>>obj.x;
+
+--- Page 80 ---
+70 
+ cout<<”The value is “<<obj.x;
+      }
+ void main()
+  {
+    a obj;
+    display(obj);
+  }
+OUTPUT
+Enter a number 23
+The value is 23
+Question : The friend function is declared inside the class so how it became 
+the non_member of the class ?
+Ans : No doubt the friend function is declared in side the class but it does 
+not follow the properties of a member of the class that means if we try to 
+extract the member of a class then it must be accessed with the help of the 
+object as 
+Object_name .member_name but the friend function is called as a nor-
+mal function inside the main()
+Second thing is that as a member of a class if we want to provide the 
+definition outside of the class then we must have to use the scope resolu -
+tion operator  but here we define the friend function as a normal function.
+So from the above discussion we came to know that even of the friend 
+function is declared inside the class but it is not a member of the class.
+4.9.2 Friend With Inline Substitution
+ #include<iostream.h>
+class a
+ {
+  private:
+     int x;
+  public:
+friend void display(a obj); 
+ };
+   inline void display(a obj)
+      {
+ cout<<”Enter a numer”;
+ cin>>obj.x;
+ cout<<”The value is “<<obj.x;
+      }
+Data Structure and Algorithms Using C++
+
+--- Page 81 ---
+Concepts of Class 71
+ void main()
+  {
+    a obj;
+    display(obj);
+    }
+4.9.3 Granting Friendship to Another Class (Friend Class)
+In this methodology a class can grant its friendship to another class. For 
+example Let us consider two classes as A and B. Let A grants friendship to 
+B then B has the ability to access the members of the class A but reverse is 
+not true.
+Syntax  
+ class A
+  {
+ friend class B;
+ private :
+  data member ;
+  member function();
+ public :
+  data member ;
+  member function();
+ protected :
+  data member ;
+  member function();
+ };
+class B
+  {
+ private :
+  data member ;
+  member function();
+          return_type function_name (A obj);
+ public :
+  data member ;
+  member function();
+    return_type function_name (A obj);
+ protected :
+  data member ;
+  member function();
+          return_type function_name (A obj);
+  };
+Example
+#include<iostream.h>
+#include<iomanip.h>
+
+--- Page 82 ---
+72 
+#include<stdio.h>
+class std
+ {
+ friend class mark;
+ private:
+   char name[20],add[20];
+   int age,roll,m[5],total;
+   float avg;
+ public:
+   void input();
+  };
+class mark
+  {
+  public:
+      void result(std obj);
+  };
+void std :: input()
+  {
+  total=0;
+    cout<<”Enter the name and address”;
+    gets(name);
+    gets(add);
+    cout<<”Enter the age,roll”;
+    cin>>age>>roll;
+    cout<<”Enter the marks in 5 subjects”;
+      for(int i=0;i<5;i++)
+       {
+ cin>>m[i];
+ total=total+m[i] ;
+       }
+     avg= float(total)/5;
+  }
+void mark :: result(std obj)
+  {
+   cout<<endl<<”NAME IS “<<obj.name;
+   cout<<endl<<”ADDRESS “<<obj.add;
+   cout<<endl<<”AGE IS  “<<obj.age;
+   cout<<endl<<”ROLL IS “<<obj.roll;
+   for(int i=0;i<5;i++)
+   cout<<endl<<”MARK “<<i+1<<” IS “<<obj.m[i];
+   cout<<endl<<”TOTAL IS “<<obj.total;
+   cout<<endl<<”AVERAGE IS “<<obj.avg;
+   if(obj.avg>=50)
+     cout<<endl<<”P A S S”;
+     else
+     cout<<endl<<”F A I L”;
+   }
+void main()
+ {
+  std obj;
+Data Structure and Algorithms Using C++
+
+--- Page 83 ---
+Concepts of Class 73
+  mark obj1;
+  obj.input();
+  obj1.result(obj);
+ }
+4.9.4 More Than One Class Having the Same Friend Function
+A friend function can also be used for different classes. For this if N –No 
+of classes want to keep a friend function as common than we must have to 
+declare N-1 classes as forward declaration.
+class name1 ;
+class name2 ;
+………………………..
+………………………..
+……………………….
+class nameN-1 ;
+class nameN
+  {
+private :
+       data member;
+       member function();
+public:
+     data member;
+     member function();
+  friend return_type function_name(name1 obj1,name2 obj2…
+nameN objn);
+protected :
+      data member;
+      member function();
+  };
+  
+class name1
+  {
+private :
+      data member;
+      member function();
+public:
+      data member;
+      member function();
+  friend return_type function_name(name1 obj1,name2 obj2…
+nameN objn);
+protected :
+      data member;
+      member function();
+  };
+
+--- Page 84 ---
+74 
+………………………………………………………………………………..
+………………………………………………………………………………..
+………………………………………………………………………………..
+class nameN-1
+  {
+private :
+      data member;
+      member function();
+public:
+      data member;
+      member function();
+  friend return_type function_name(name1 obj1,name2 obj2…
+nameN objn);
+protected :
+     data member;
+    member function();
+  };
+Example
+  #include<iostream.h>
+class A;
+class B;
+class C
+ {
+ private:
+    int x;
+ public:
+    void input();
+    friend void average(A obj,B obj1,C obj2);
+ };
+class A
+  {
+    private:
+       int y;
+    public:
+ void input();
+ friend void average(A obj,B obj1,C obj2);
+  };
+class B
+  {
+    private:
+       int z;
+    public:
+ void input();
+ friend void average(A obj,B obj1,C obj2);
+Data Structure and Algorithms Using C++
+
+--- Page 85 ---
+Concepts of Class 75
+  };
+void C :: input()
+ {
+  cout<<”Enter a number”;
+  cin>>x;
+ }
+void A :: input()
+ {
+  cout<<»Enter a number»;
+  cin>>y;
+ }
+void B :: input()
+ {
+  cout<<”Enter a number”;
+  cin>>z;
+ }
+void average(A obj,B obj1,C obj2)
+   {
+      float avg;
+      avg = float(obj2.x + obj.y + obj1.z)/3;
+    cout<<”AVERAGE OF “<<obj2.x<<”  “<<obj.y<<”  “<<obj1.z<<” 
+IS “<<avg;
+   }
+void main()
+ {
+    A obj;
+    B obj1;
+    C obj2;
+    obj.input();
+    obj1.input();
+    obj2.input();
+  average(obj,obj1,obj2);
+ }
+4.10 Static Data Member and Member Functions
+The static is a storage class specifier which is generally used for the declara-
+tion of the variable it having a speciality compare to other normal variables 
+that is it maintain the consistency of the value of the variable even if it is 
+out of the scope of the function. In C++ we may use the static with the 
+members of the class. When we declare a data member as static then the 
+initialized value of the variable is ZERO and it will create a single copy of 
+the variable for all the objects and that will be shared by all the objects. The 
+scope of the static variable is local but it works as like a global variable.
+
+--- Page 86 ---
+76 
+The static data members allocated memory during the compilation time 
+where as the nonstatic data members allocate the memory during compi -
+lation time.
+Before the main function we must have to define a static data member as 
+  data_type class_name :: variable;
+   or
+  data_type class_name :: variable = value;
+Difference between normal and static data members
+ class demo
+   {
+ private:
+      int   x;
+   };
+   void main()
+ {
+   demo obj,obj1,obj2;
+……………………
+…………………..
+         } 
+In the above case the 3 copies of the data_member ‘x’ will be created for 
+the three objects obj,obj1,obj2. So if we will change the ‘x’ through obj then 
+that will not affect the ‘x’ of obj1 and also obj2.
+ class demo
+   {
+ private:
+     static int   x;
+   };
+int demo :: x;
+   void main()
+ {
+   demo obj,obj1,obj2;
+……………………
+…………………..
+         }
+In this case instead of creating three copies it will create a single copy 
+of the data_member ‘x’ for all the objects and that will be shared by the 
+objects. So if we change the value of the data_member through obj than 
+that will be effect to obj1 and obj2.
+Data Structure and Algorithms Using C++
+
+--- Page 87 ---
+Concepts of Class 77
+Example
+ #include<iostream.h>
+class demo
+ {
+private:
+   static int x;
+public:
+  void change();
+  void display();
+ };
+ void demo :: display()
+  {
+   cout<<x;
+  }
+void demo :: change()
+ {
+  x++;
+ }
+int demo :: x=5;
+void main()
+ {
+  demo obj,obj1,obj2;
+  obj.display();
+  obj1.display();
+  obj2.display();
+   obj.change();
+  obj.display();
+  obj1.display();
+  obj2.display();
+ }
+OUTPUT    555666
+The keyword static can also be used with the member function. The 
+speciality with the function is that it can only use the static data members 
+and can be called by the class name as 
+class_name :: function_name();
+#include<iostream.h>
+class demo
+ {
+  static int x;
+  public :
+    static void print();
+  };
+void demo :: print()
+ {
+ cout<<endl<<++x;
+
+--- Page 88 ---
+78 
+ }
+ int demo :: x=5;
+void main()
+ {
+  demo obj;
+  demo :: print();
+  obj.print();
+  }
+OUTPUT      6     7
+4.11 Constructor and Destructor
+4.11.1 Constructor
+The constructors are the special member functions which are used for the 
+initialization. It is special because it is working and way of representing 
+is totally different from the normal functions. We cannot initialize the 
+data members inside the private section and generally we arrange the data 
+members inside the private section. So if we want to initialize the member 
+than we have to do this inside a member function, which is not preferable 
+because to have an initialized value we have to call a member function. So 
+it will be better to initialize the data members whenever the class members 
+will gets activated for use i.e. when the objects are being created. To achieve 
+the C++ provides the constructors for its conventional programmers.
+The constructors are the special member functions which are called 
+automatically whenever an object is being created.
+Certain rules we have to follow which using the constructor such as
+• The name of the constructor is same as the class name.
+• The constructors do not have any return type not even void.
+• They cannot be inherited.
+• The keywords like virtual, const, volatile, static cannot be 
+used.
+The constructors are of four types such as
+• Empty Constructors
+• Default constructors
+• Parameterized Constructors
+• Copy constructors
+Data Structure and Algorithms Using C++
+
+--- Page 89 ---
+Concepts of Class 79
+4.11.1.1 Empty Constructor
+The name itself designates that the constructors whose body part is absent 
+is called as empty constructors. These constructors are not used.
+Syntax :
+ constructor_name()
+ {
+ }
+4.11.1.2 Default Constructor
+In default constructor we have to initialize the data members by assigning 
+some value to them and whatever the value may be assigned that will be 
+fixed for all the objects that means by default the objects members will 
+store the values which is given inside the default constructors.
+Syntax :
+ constructor_name()
+ {
+ data_member = value;
+ data member  = value;
+ ……………………………
+ …………………………..
+ data member = value;
+   }
+Example
+  #include<iostream.h>
+class hello
+   {
+  private:
+ int x;
+ public :
+    hello();
+   void display();
+   };
+hello :: hello()
+   {
+  x=5;
+    }
+void hello :: display()
+  {
+  cout<<endl<<x;
+   }
+
+--- Page 90 ---
+80 
+void main()
+  {
+ hello obj,obj1,obj2;  //constructors are called
+obj.display();
+obj1.display();
+obj2.display();
+  }
+OUTPUT
+5
+5
+5
+4.11.1.3 Parameterized Constructors
+When we want to initialize the data members according to the values given 
+by the user then we have to choose the parameterized constructors. In 
+this type some parameters should have to pass during the creation of the 
+objects.
+Syntax :
+constructor name(data type V1, data type V2…………… data type Vn)
+ {
+ Member1 = V1;
+ Member2 = V2;
+ Member3 = V3;
+ ………………….
+ ………………….
+ ………………….
+ Membern = Vn;
+  }
+During the creation of object the format would be
+ class_name obj(v1,v2,…..vn);
+Example
+#include<iostream.h>
+#include<conio.h>
+#include<iomanip.h>
+class fibo
+ {
+private:
+   int a,b,c,n;
+Data Structure and Algorithms Using C++
+
+--- Page 91 ---
+Concepts of Class 81
+public :
+   fibo(int);
+   void generate();
+ };
+fibo :: fibo(int x)
+  {
+    a=0;
+    b=1;
+    c=a+b;
+    n=x;
+  }
+void fibo :: generate()
+   {
+    cout<<”THE FIBONACCI SERIES NUMBERS ARE”;
+    cout<<endl<<a<<setw(4)<<b;
+    for(int i=3;i<=n;i++)
+      {
+      c=a+b;
+ cout<<setw(4)<<c;
+ a=b;
+ b=c;
+      }
+   }
+void main()
+ {
+   int n;
+   cout<<”Enter how many digits U want to print”;
+   cin>>n;
+  fibo obj(n);
+  clrscr();
+    obj.generate();
+ }
+OUTPUT
+Enter how many digits U want to print 8
+THE FIBONACCI SERIES NUMBERS ARE
+0  1  1  2  3  5   8   13
+4.11.1.4 Copy Constructor
+The copy constructor is a special type of constructor where the data mem-
+bers are initialized by the object. So when there is a need that the initial -
+ization should be by the object than use the copy constructor. The format 
+is same as the parameter constructor except that the argument of the con-
+structor should be always the object.
+
+--- Page 92 ---
+82 
+Since the data members are initialized by the object so before that the 
+object should have to be initialized so while using the copy constructor we 
+have to use either the default constructor or parameterized constructor. 
+Because due to this the data members of the object first will be initialized 
+and then with the help of the object again the data members are initialized. 
+Since the data member get the same value two times so this constructor is 
+so named.
+SYNTAX
+constructor name(class name &object);
+Example
+ #include<iostream.h>
+#include<conio.h>
+#include<iomanip.h>
+class fibo
+ {
+private:
+   int a,b,c,n;
+public :
+   fibo(int);
+   fibo(fibo &obj);
+   void generate();
+ };
+ fibo :: fibo(fibo &obj)
+    {
+  a=obj.a;
+  b=obj.b;
+  c=obj.c;
+  n=obj.n;
+    }
+fibo :: fibo(int x)
+  {
+    a=0;
+    b=1;
+    c=a+b;
+    n=x;
+  }
+void fibo :: generate()
+   {
+    cout<<”THE FIBONACCI SERIES NUMBERS ARE”;
+    cout<<endl<<a<<setw(4)<<b;
+    for(int i=3;i<=n;i++)
+      {
+      c=a+b;
+ cout<<setw(4)<<c;
+Data Structure and Algorithms Using C++
+
+--- Page 93 ---
+Concepts of Class 83
+ a=b;
+ b=c;
+      }
+   }
+void main()
+ {
+   int n;
+   cout<<”Enter how many digits U want to print”;
+   cin>>n;
+  fibo obj(n);
+    obj.generate();    }
+OUTPUT
+Enter how many digits U want to print 8
+THE FIBONACCI SERIES NUMBERS ARE
+0  1  1  2  3  5   8   13
+4.11.2 Destructor
+A destructor is also a member function of the class which is used for the 
+destruction of the objects which are created by a constructor. That is this is used 
+for the de-allocation purpose. The declaration of the destructor is as same as 
+the constructor except that the destructor is declared with the tiled(~) symbol 
+and it does not have any return type as well as it does not have any argument.
+The destructors are also called automatically. The keyword “virtual” cam 
+be used with destructor.
+Ex :
+#include<iostream.h>
+#include<conio.h>
+class demo
+  {
+  public:
+    demo()
+      {
+ cout<<”CONSTRUCTOR IS CALLED”;
+      }
+      void input()
+       {
+       cout<<endl<<”HELLO”;
+       }
+    ~demo()
+      {
+      cout<<endl<<”DESTRUCTOR IS CALLED”;
+      getch();
+      }
+
+--- Page 94 ---
+84 
+   };
+void main()
+ {
+   demo obj;
+   obj.input();
+  }
+OUTPUT
+CONSTRUCTOR IS CALLED 
+HELLO 
+DESTRUCTOR IS CALLED 
+4.12 Dynamic Memory Allocation
+Allocation of memory for a variable during run time is known as 
+DYNAMIC MEMORY ALLOCATION.
+Need of Dynamic Memory Allocation
+When there is a requirement to handle more than one element of same kind 
+then the concept of array is being implemented. During the declaration of 
+an array we must have to mention its size which contradicts the flexibility 
+nature of an array, because if we specifies the boundary point of an array then 
+that array will be stipulated for that much amount of data, if the amount of 
+data exceeds the boundary then the array fails to handle it and on the other 
+hand if we specify a large volume of boundary for the array then, it does not 
+matter that it will recover the first drawback but it will lead to memory loss, 
+because some portion of memory is utilized from a huge block so the remain-
+ing unused memory is blocked and that is not used by any other program. But 
+as a better programmer, he/she should be conscious about the memory, that 
+means how a task can be completed with a minimum amount of memory.
+So to avoid this it will be better  to reserve the memory according to the 
+user choice/requirement  and this is only possible during the runtime.
+To have a dynamic memory allocation C++ allows a new operator as 
+“new” and for the deallocation purpose it provides “delete” operator which 
+does the same work as free() in C-language.
+Syntax :
+new operator
+  Data_type *var = new data_type; //for single memory 
+allocation
+  Data_type *var = new data_type[n] //for more than one 
+memory allocation
+Data Structure and Algorithms Using C++
+
+--- Page 95 ---
+Concepts of Class 85
+delete operator
+ delete var ; //for single memory cell
+  delete [ ] var; // for an array 
+We can also initialize a variable during allocation.
+ int *x =new int(5);
+Example :
+Wap to enter n number of elements into an array and display them.
+#include<iostream.h>
+#include<iomanip.h>
+void main()
+ {
+ int n;
+ cout<<”Enter how many elements to be handle”;
+ cin>>n;
+  int *p = new int[n];
+  for(int i=0;i<n;i++)
+    {
+      cout<<”Enter  a number”;
+      cin>>*(p+i);
+      }
+      cout<<”THE ELEMENTS ARE”;
+  for(i=0;i<n;i++)
+    cout<<setw(5)<<*(p+i);
+    delete []p;
+  }
+Wap to enter N number of elements and display them with the help of 
+class, constructor and destructor.
+#include<iostream.h>
+#include<iomanip.h>
+class dynamic
+  {
+    private:
+       int *p,n;
+    public:
+       dynamic(int);
+       ~dynamic();
+       void show();
+   };
+dynamic :: dynamic (int a)
+  {
+  n=a;
+    p = new int[n];
+    if(p==NULL)
+      cout<<”UNABLE TO ALLOCATE MEMORY”;
+      else
+
+--- Page 96 ---
+86 
+    cout<<”SUCESSFULLY ALLOCATED”;
+  }
+dynamic :: ~dynamic()
+  {
+    delete [] p;
+   }
+void dynamic :: show()
+ {
+   for(int i=0;i<n;i++)
+    {
+      cout<<”Enter  a number”;
+      cin>>*(p+i);
+      }
+      cout<<”THE ELEMENTS ARE”;
+  for(i=0;i<n;i++)
+    cout<<setw(5)<<*(p+i);
+  }
+void main()
+ {
+ int a;
+ cout<<”Enter how many elements”;
+ cin>>a;
+  dynamic obj(a);
+  obj.show();
+  }
+4.13 This Pointer
+This pointer is a special type of pointer which is used to know the address 
+of the current object that means it always stores the address of current 
+object. We can also handle the members of a class as
+ this->member_name;
+Example :
+#include<iostream.h>
+class even
+ {
+  private:
+    int n;
+  public:
+     void input();
+     void check();
+  };
+void even :: input()
+  {
+    cout<<”Enter a number”;
+Data Structure and Algorithms Using C++
+
+--- Page 97 ---
+Concepts of Class 87
+    cin>>this->n;
+   }
+void even :: check()
+  {
+    cout<<”THE ADDRESS OF OBJECT IS “<<this;
+    if(this->n %2==0)
+       cout<<endl<<this->n<<”IS EVEN”;
+     else
+       cout<<endl<<this->n<<”IS NOT EVEN”;
+  }
+void main()
+ {
+   even obj;
+   obj.input();
+   obj.check();
+ }
+OUTPUT
+Enter a number 5
+THE ADDRESS OF OBJECT IS  0x8fa7fff4
+5  IS NOT EVEN
+4.14 Class Within Class
+Like structure within structure we can also use a class as a member of another 
+class which is known as the class with in class. It is also called as nested class.
+Example
+#include<iostream.h>
+#include<iomanip.h>
+class a
+ {
+   public:
+     void input()
+      {
+      cout<<"HELLO";
+      }
+  };
+class b
+ {
+   public :
+      a obj;
+      void print()
+       {
+
+--- Page 98 ---
+88 
+  cout<<"INDIA";
+ }
+     };
+     void main()
+      {
+       b B;
+       B.print();
+       B.obj.input();
+      }
+            OR
+#include<iostream.h>
+class a
+ {
+   private:
+      int x;
+   public :
+      void check();
+     class b
+       {
+  private:
+     int y ;
+  public:
+      void print();
+ };
+   };
+void a :: check()
+ {
+   cout<<"Enter the number";
+   cin>>x;
+     if(x>=0)
+       cout<<endl<<"+VE";
+    else
+       cout<<endl<<"-VE";
+  }
+void a::b::print()
+  {
+    cout<<endl<<"Enter the number";
+    cin>>y;
+    if(y%2==0)
+      cout<<endl<<"EVEN";
+    else
+      cout<<endl<<"ODD";
+   }
+void main()
+ {
+Data Structure and Algorithms Using C++
+
+--- Page 99 ---
+Concepts of Class 89
+    a obj;
+    a::b obj1;
+    obj.check();
+    obj1.print();    }
+4.15 Questions
+1. Define features of object-oriented paradigm.
+2. What are the access specifiers used in class?
+3. Differentiate between inline and macro.
+4. What is the benefit of using friend function?
+5. What are the types of constructors?
+6. What is dynamic memory allocation?
+7. What is the use of this pointer?
+8. What are the types of manipulators in c++?
+9. Discuss features of static data member and static member 
+functions.
+10. Differentiate between structure and class.
+
+--- Page 100 ---
+91
+5
+Stack
+5.1 STACK
+Stack is a linear data structure which follows the principle of LIFO (Last in 
+First Out). In other words we can say that if the LIFO principle is imple -
+mented with the array than that will be called as the STACK.
+5.2 Operations Performed With STACK
+The most commonly implemented operations with the stack are PUSH, 
+P O P.
+Besides these two more operations can also be implemented with the 
+STACK such as PEEP and UPDATE.
+The PUSH operation is known as the INSERT operation and the POP 
+operation is known as DELETE operation. During the PUSH operation we 
+have to check the condition for OVERFLOW and during the POP opera -
+tion we have to check the condition for UNDERFLOW .
+OVERFLOW
+If one can try to insert an element with a filled stack then that situation will 
+be called as the OVERFLOW .
+In general if one can try to insert an element with a filled data structure 
+then that will be called as OVERFLOW .
+Condition for OVERFLOW
+Top = size −1 (for the STACK starts with 0)
+Top = size (for the STACK starts with 1)
+Sachi Nandan Mohanty and Pabitra Kumar Tripathy. Data Structure and Algorithms Using C++: 
+A Practical Implementation, (91–128) © 2021 Scrivener Publishing LLC
