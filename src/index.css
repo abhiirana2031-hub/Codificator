@@ -604,12 +604,11 @@ code, pre {
   /* Prevent saving classroom lessons, quizzes, or text to PDF or printer */
   .classroom-drm-protected,
   .classroom-content-stage,
-  .pdf-modal-dialog,
-  main {
+  .pdf-modal-dialog {
     display: none !important;
   }
 
-  body::after {
+  body:has(.classroom-drm-protected):not(:has(#printable-certificate))::after {
     content: "Content is protected by Codificator Intellectual Property DRM. Printing and saving is restricted.";
     display: block;
     font-size: 18px;

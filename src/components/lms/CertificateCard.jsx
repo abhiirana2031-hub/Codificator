@@ -185,7 +185,18 @@ export default function CertificateCard({
   };
 
   const handlePrint = () => {
+    const originalTitle = typeof document !== 'undefined' ? document.title : '';
+    const cleanStudent = (studentName || 'Student').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanId = (certificateId || 'ID').replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (typeof document !== 'undefined') {
+      document.title = `Codificator_Certificate_${cleanStudent}_${cleanId}`;
+    }
     window.print();
+    setTimeout(() => {
+      if (typeof document !== 'undefined') {
+        document.title = originalTitle;
+      }
+    }, 1500);
   };
 
   const handleVerifyClick = (e) => {
@@ -479,7 +490,7 @@ export default function CertificateCard({
         {/* =====================================================================
             MIDDLE SECTION: TITLE, RECIPIENT, CITATION & STATS
         ===================================================================== */}
-        <div style={{ position: 'relative', zIndex: 2, margin: '22px 0 16px' }}>
+        <div className="cert-middle-section" style={{ position: 'relative', zIndex: 2, margin: '22px 0 16px' }}>
           {/* Header Title */}
           <div style={{
             fontSize: '12px',
@@ -539,7 +550,7 @@ export default function CertificateCard({
           </div>
 
           {/* Description / Citation Text */}
-          <p style={{
+          <p className="cert-citation" style={{
             color: '#475569',
             fontSize: '13.5px',
             lineHeight: 1.55,
@@ -550,7 +561,7 @@ export default function CertificateCard({
           </p>
 
           {/* Three Metric Feature Badges */}
-          <div style={{
+          <div className="cert-metrics-row" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '0',
@@ -659,7 +670,7 @@ export default function CertificateCard({
         {/* =====================================================================
             BOTTOM SECTION: SIGNATURE & VERIFIABLE QR CODE
         ===================================================================== */}
-        <div style={{
+        <div className="cert-bottom-section" style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-end',
@@ -763,36 +774,159 @@ export default function CertificateCard({
         </div>
       </div>
 
-      {/* Global Print Media Styles */}
+      {/* Global Print Media Styles & Single-Page Certificate Guarantee */}
       <style>{`
+        @page {
+          size: landscape;
+          margin: 0;
+        }
+
         @media print {
+          /* 1. Force strict single-page viewport dimensions & zero page margins */
+          html, body {
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+
+          /* 2. Completely suppress DRM watermark pseudo-elements */
+          body::after,
+          body::before,
+          html::after,
+          html::before {
+            display: none !important;
+            content: none !important;
+          }
+
+          /* 3. Hide all non-certificate page chrome and UI */
           body * {
             visibility: hidden;
           }
-          .no-print {
+
+          .no-print,
+          .no-print *,
+          header,
+          nav,
+          footer,
+          .navbar,
+          .main-navbar,
+          .sub-header,
+          .sub-header-bar,
+          .site-footer,
+          .certificate-toolbar {
             display: none !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
           }
-          #printable-certificate, #printable-certificate * {
-            visibility: visible;
+
+          /* 4. Disable animations & transitions that alter fixed positioning or cause layout lag */
+          *, *::before, *::after {
+            animation-duration: 0s !important;
+            animation-delay: 0s !important;
+            transition-duration: 0s !important;
           }
-          #printable-certificate {
-            position: fixed !important;
-            left: 0 !important;
-            top: 0 !important;
+
+          /* 5. Flatten all ancestor containers so they occupy zero space */
+          #root,
+          .app-container,
+          .max-width-wrapper,
+          .cert-verification-page,
+          .certificate-container,
+          .modal-overlay,
+          .modal-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100vw !important;
             width: 100vw !important;
             height: 100vh !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 40px 48px !important;
+            max-height: 100vh !important;
+            min-height: 0 !important;
             border: none !important;
             box-shadow: none !important;
+            background: transparent !important;
+            transform: none !important;
+            filter: none !important;
+            position: static !important;
+          }
+
+          /* 6. Make the certificate canvas and all contents visible */
+          #printable-certificate,
+          #printable-certificate * {
+            visibility: visible !important;
+          }
+
+          /* 7. Pixel-perfect, high-prestige single-page certificate canvas */
+          #printable-certificate {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            min-height: 0 !important;
+            aspect-ratio: auto !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            padding: clamp(26px, 4.2vh, 40px) clamp(32px, 4.5vw, 52px) !important;
             border-radius: 0 !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            z-index: 999999 !important;
+            
+            /* Professional credential double-border frame */
+            border: 12px solid #047857 !important;
+            outline: 2px solid #10b981 !important;
+            outline-offset: -7px !important;
+
+            display: flex !important;
+            flex-direction: column !important;
+            justifyContent: space-between !important;
+            overflow: hidden !important;
+
+            /* Strict single-sheet pagination controls */
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-before: avoid !important;
+            break-before: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          @page {
-            size: landscape;
-            margin: 0;
+
+          /* Inner element optimizations for crisp single-page fit */
+          .cert-middle-section {
+            margin: clamp(10px, 1.8vh, 18px) 0 !important;
+          }
+
+          .cert-metrics-row {
+            margin-top: clamp(10px, 1.6vh, 16px) !important;
+          }
+
+          .cert-citation {
+            font-size: 13px !important;
+            line-height: 1.45 !important;
+            max-width: 580px !important;
+          }
+
+          .cert-bottom-section {
+            padding-top: 4px !important;
           }
         }
       `}</style>

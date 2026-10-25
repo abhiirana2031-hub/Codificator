@@ -20,7 +20,7 @@ export default function CertificateModal({
 
   return (
     <div
-      className="modal-overlay animate-fade-in no-print"
+      className="modal-overlay animate-fade-in"
       style={{
         position: 'fixed',
         inset: 0,
@@ -50,6 +50,7 @@ export default function CertificateModal({
         {/* Floating Close Button */}
         <button
           onClick={onClose}
+          className="no-print"
           aria-label="Close"
           style={{
             position: 'absolute',

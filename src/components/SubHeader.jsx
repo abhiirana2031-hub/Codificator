@@ -20,13 +20,16 @@ export const subHeaderLinks = [
 
 export default function SubHeader({ onSelectSubHeader }) {
   return (
-    <div style={{
-      backgroundColor: 'var(--bg-secondary)',
-      borderBottom: '1px solid var(--border-color)',
-      padding: '4px 0',
-      overflowX: 'auto',
-      whiteSpace: 'nowrap'
-    }}>
+    <div
+      className="sub-header-bar no-print"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        borderBottom: '1px solid var(--border-color)',
+        padding: '4px 0',
+        overflowX: 'auto',
+        whiteSpace: 'nowrap'
+      }}
+    >
       <div className="max-width-wrapper" style={{
         display: 'flex',
         alignItems: 'center',

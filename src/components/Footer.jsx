@@ -9,14 +9,17 @@ export default function Footer({ onNavigate }) {
   };
 
   return (
-    <footer style={{
-      backgroundColor: 'var(--bg-secondary)',
-      borderTop: '1px solid var(--border-color)',
-      padding: '52px 0 28px 0',
-      color: 'var(--text-secondary)',
-      fontSize: '13.5px',
-      marginTop: 'auto'
-    }}>
+    <footer
+      className="site-footer no-print"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border-color)',
+        padding: '52px 0 28px 0',
+        color: 'var(--text-secondary)',
+        fontSize: '13.5px',
+        marginTop: 'auto'
+      }}
+    >
       <div className="max-width-wrapper">
         <div style={{
           display: 'grid',

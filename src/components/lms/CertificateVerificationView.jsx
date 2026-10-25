@@ -69,7 +69,7 @@ export default function CertificateVerificationView({ initialCode = '' }) {
   };
 
   return (
-    <div className="max-width-wrapper animate-fade-in" style={{ padding: '36px 0 80px', minHeight: '85vh' }}>
+    <div className="max-width-wrapper animate-fade-in cert-verification-page" style={{ padding: '36px 0 80px', minHeight: '85vh' }}>
       <div style={{ maxWidth: result ? '980px' : '680px', margin: '0 auto', transition: 'max-width 0.3s' }}>
         
         {/* Header (hidden during print) */}

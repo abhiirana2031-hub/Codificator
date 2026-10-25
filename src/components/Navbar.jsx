@@ -114,6 +114,7 @@ export default function Navbar({
 
   return (
     <header
+      className="main-navbar no-print"
       style={{
         position: 'sticky',
         top: 0,
