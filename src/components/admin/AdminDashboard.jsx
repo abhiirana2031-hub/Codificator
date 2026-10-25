@@ -250,38 +250,25 @@ export default function AdminDashboard({ currentUser, onNavigate }) {
       setLoading(true);
       setError('');
 
-      if (activeTab === 'overview' || activeTab === 'coupons') {
-        const cRes = await lmsApi.getAdminCoupons();
-        if (cRes?.coupons) setCouponsList(cRes.coupons);
-      }
+      // High-performance single round-trip parallel fetch
+      const [cRes, crRes, uRes, oRes] = await Promise.all([
+        lmsApi.getAdminCoupons().catch(() => ({ coupons: [] })),
+        lmsApi.getCourses().catch(() => ({ courses: [] })),
+        lmsApi.getAdminUsers({ search: userSearch, role: userRoleFilter }).catch(() => ({ users: [] })),
+        lmsApi.getAdminOrders({ search: orderSearch, status: orderStatusFilter }).catch(() => ({ orders: [] }))
+      ]);
 
-      if (activeTab === 'overview' || activeTab === 'courses') {
-        const crRes = await lmsApi.getCourses();
-        if (crRes?.courses) setCoursesList(crRes.courses);
-      }
-
-      if (activeTab === 'overview' || activeTab === 'users') {
-        const uRes = await lmsApi.getAdminUsers({ search: userSearch, role: userRoleFilter });
-        if (uRes?.users) setUsersList(uRes.users);
-      }
-
-      if (activeTab === 'overview' || activeTab === 'orders') {
-        const oRes = await lmsApi.getAdminOrders({ search: orderSearch, status: orderStatusFilter }).catch(() => null);
-        if (oRes?.orders) setOrdersList(oRes.orders);
-      }
-
-      // Compute overview stats from real database queries
-      const cList = await lmsApi.getAdminCoupons().catch(() => ({ coupons: [] }));
-      const uList = await lmsApi.getAdminUsers().catch(() => ({ users: [] }));
-      const crList = await lmsApi.getCourses().catch(() => ({ courses: [] }));
-      const oData = await lmsApi.getAdminOrders().catch(() => ({ orders: [] }));
+      if (cRes?.coupons) setCouponsList(cRes.coupons);
+      if (crRes?.courses) setCoursesList(crRes.courses);
+      if (uRes?.users) setUsersList(uRes.users);
+      if (oRes?.orders) setOrdersList(oRes.orders);
 
       setStats({
-        usersCount: uList?.total || uList?.users?.length || 0,
-        coursesCount: crList?.courses?.length || 0,
-        activeCouponsCount: cList?.coupons?.filter(c => c.is_active)?.length || 0,
-        ordersCount: oData?.orders?.length || 0,
-        totalRevenue: oData?.orders
+        usersCount: uRes?.total || uRes?.users?.length || 0,
+        coursesCount: crRes?.courses?.length || 0,
+        activeCouponsCount: cRes?.coupons?.filter(c => c.is_active)?.length || 0,
+        ordersCount: oRes?.orders?.length || 0,
+        totalRevenue: oRes?.orders
           ?.filter(o => o.status === 'COMPLETED')
           ?.reduce((acc, o) => acc + (Number(o.amount) || 0), 0) || 0
       });
