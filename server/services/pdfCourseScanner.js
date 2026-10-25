@@ -1,4 +1,4 @@
-import { PDFParse } from 'pdf-parse';
+// pdf-parse is lazily imported inside scanCoursePdfBuffer to prevent DOMMatrix ReferenceError during serverless cold starts.
 
 /**
  * Valid course categories supported by Codificator LMS
@@ -787,7 +787,11 @@ export async function scanCoursePdfBuffer(bufferOrBase64) {
     throw new Error('Invalid PDF data payload provided');
   }
 
-  // Extract text using PDFParse
+  // Extract text using lazily loaded PDFParse
+  if (typeof globalThis.DOMMatrix === 'undefined') {
+    globalThis.DOMMatrix = class DOMMatrix {};
+  }
+  const { PDFParse } = await import('pdf-parse');
   const parser = new PDFParse({ data: buffer });
   const result = await parser.getText();
   const rawText = result.text || '';
