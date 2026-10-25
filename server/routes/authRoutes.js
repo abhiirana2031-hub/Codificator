@@ -94,14 +94,17 @@ router.get('/users', requireAuth, requireRole('ADMIN', 'OPERATOR'), (req, res) =
 });
 
 // 3. Authenticate / Login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const user = queryOne('SELECT * FROM users WHERE email = ?', [cleanEmail]);
+  const isServerless = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  const user = isServerless
+    ? await queryOneNeon('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail])
+    : queryOne('SELECT * FROM users WHERE email = ?', [cleanEmail]);
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid email or password' });
