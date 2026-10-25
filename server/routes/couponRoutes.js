@@ -195,8 +195,19 @@ router.post('/admin/coupons', requireAuth, requireRole('ADMIN', 'OPERATOR'), asy
       }
 
       const id = `cpn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const discountType = data.discount_type || 'PERCENTAGE';
-      const discountValue = Number(data.discount_value) || 0;
+      const discountType = data.discount_type || data.discountType || 'PERCENTAGE';
+      const discountValue = Number(data.discount_value !== undefined ? data.discount_value : data.discountValue) || 0;
+      const maxDiscount = (data.max_discount !== undefined && data.max_discount !== '') ? Number(data.max_discount) : ((data.maxDiscount !== undefined && data.maxDiscount !== '') ? Number(data.maxDiscount) : null);
+      const minPurchase = (data.min_purchase_amount !== undefined && data.min_purchase_amount !== '') ? Number(data.min_purchase_amount) : ((data.minPurchaseAmount !== undefined && data.minPurchaseAmount !== '') ? Number(data.minPurchaseAmount) : 0);
+      const eligibleCourse = data.eligible_course_id || data.eligibleCourseId || null;
+      const eligibleEmail = data.eligible_email ? data.eligible_email.trim().toLowerCase() : (data.eligibleEmail ? data.eligibleEmail.trim().toLowerCase() : null);
+      const eligiblePhone = data.eligible_phone ? data.eligible_phone.trim() : (data.eligiblePhone ? data.eligiblePhone.trim() : null);
+      const startDate = data.start_date || data.startDate || new Date().toISOString();
+      const expiryDate = data.expiry_date || data.expiryDate || null;
+      const maxRedemptions = (data.max_redemptions !== undefined && data.max_redemptions !== '') ? Number(data.max_redemptions) : ((data.maxRedemptions !== undefined && data.maxRedemptions !== '') ? Number(data.maxRedemptions) : 100);
+      const maxPerUser = (data.max_redemptions_per_user !== undefined && data.max_redemptions_per_user !== '') ? Number(data.max_redemptions_per_user) : ((data.maxRedemptionsPerUser !== undefined && data.maxRedemptionsPerUser !== '') ? Number(data.maxRedemptionsPerUser) : 1);
+      const isActive = data.is_active !== undefined ? Boolean(data.is_active) : (data.isActive !== undefined ? Boolean(data.isActive) : true);
+      const isSingleUse = Boolean(data.is_single_use !== undefined ? data.is_single_use : data.isSingleUse);
 
       await runNeonQuery(
         `INSERT INTO coupons (
@@ -211,17 +222,17 @@ router.post('/admin/coupons', requireAuth, requireRole('ADMIN', 'OPERATOR'), asy
           data.description || null,
           discountType,
           discountValue,
-          data.max_discount ? Number(data.max_discount) : null,
-          data.min_purchase_amount ? Number(data.min_purchase_amount) : 0,
-          data.eligible_course_id || null,
-          data.eligible_email ? data.eligible_email.trim().toLowerCase() : null,
-          data.eligible_phone ? data.eligible_phone.trim() : null,
-          data.start_date || new Date().toISOString(),
-          data.expiry_date || null,
-          data.max_redemptions ? Number(data.max_redemptions) : 100,
-          data.max_redemptions_per_user ? Number(data.max_redemptions_per_user) : 1,
-          data.is_active !== undefined ? Boolean(data.is_active) : true,
-          Boolean(data.is_single_use),
+          maxDiscount,
+          minPurchase,
+          eligibleCourse,
+          eligibleEmail,
+          eligiblePhone,
+          startDate,
+          expiryDate,
+          maxRedemptions,
+          maxPerUser,
+          isActive,
+          isSingleUse,
           req.user.id
         ]
       );
@@ -299,7 +310,7 @@ router.delete('/admin/coupons/:id', requireAuth, requireRole('ADMIN', 'OPERATOR'
  * Admin & Operator: Bulk delete coupons
  * Endpoint: POST /api/admin/coupons/bulk-delete
  */
-router.post('/admin/coupons/bulk-delete', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
+router.post(['/admin/coupons/bulk-delete', '/coupons/admin/bulk-delete'], requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
   const { couponIds } = req.body;
   if (!Array.isArray(couponIds) || couponIds.length === 0) {
     return res.status(400).json({ error: 'couponIds array is required.' });
