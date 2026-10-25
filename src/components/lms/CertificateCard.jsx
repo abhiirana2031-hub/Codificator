@@ -9,10 +9,11 @@ import {
  */
 function SignatureSvg() {
   return (
-    <div style={{ position: 'relative', height: '52px', display: 'flex', alignItems: 'center' }}>
+    <div className="cert-signature-wrapper" style={{ position: 'relative', height: '52px', display: 'flex', alignItems: 'center' }}>
       <img
         src="/signature.png"
         alt="Qualifier Mentor Team Signature"
+        className="cert-signature-img"
         style={{
           height: '52px',
           width: 'auto',
@@ -34,7 +35,15 @@ function SignatureSvg() {
  */
 function CodificatorEmblem({ size = 160, opacity = 1 }) {
   return (
-    <svg width={size} height={size * 0.95} viewBox="0 0 200 190" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity }}>
+    <svg 
+      className="cert-emblem-svg" 
+      width={size} 
+      height={size * 0.95} 
+      viewBox="0 0 200 190" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      style={{ opacity, maxWidth: '100%', height: 'auto', display: 'block' }}
+    >
       <defs>
         <linearGradient id="capGrad" x1="20" y1="20" x2="180" y2="70" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#047857" />
@@ -304,14 +313,14 @@ export default function CertificateCard({
         style={{
           width: '100%',
           aspectRatio: '1.55 / 1',
-          minHeight: '580px',
+          minHeight: 'clamp(210px, 58vw, 580px)',
           background: '#ffffff',
           borderRadius: '26px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(16, 185, 129, 0.08)',
           position: 'relative',
           overflow: 'hidden',
-          padding: 'clamp(28px, 4.5vw, 44px) clamp(30px, 5vw, 52px)',
+          padding: 'clamp(14px, 3.8vw, 44px) clamp(16px, 4.2vw, 52px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -355,7 +364,7 @@ export default function CertificateCard({
           </div>
 
           <div style={{ marginTop: '14px', textAlign: 'center' }}>
-            <div style={{
+            <div className="cert-emblem-text" style={{
               color: '#475569',
               fontSize: '10.5px',
               fontWeight: 800,
@@ -365,7 +374,7 @@ export default function CertificateCard({
             }}>
               SKILLS FOR A<br />BETTER TOMORROW
             </div>
-            <div style={{
+            <div className="cert-emblem-bar" style={{
               width: '28px',
               height: '3px',
               background: '#10b981',
@@ -386,10 +395,11 @@ export default function CertificateCard({
           zIndex: 2
         }}>
           {/* Brand Logo & Tagline */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className="cert-brand-block" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <img
               src="/logo.png"
               alt="Codificator"
+              className="cert-logo-img"
               onError={(e) => {
                 e.target.style.display = 'none';
               }}
@@ -401,7 +411,7 @@ export default function CertificateCard({
               }}
             />
             <div>
-              <div style={{
+              <div className="cert-brand-name" style={{
                 fontSize: '25px',
                 fontWeight: 900,
                 letterSpacing: '-0.02em',
@@ -420,7 +430,7 @@ export default function CertificateCard({
                   ATOR
                 </span>
               </div>
-              <div style={{
+              <div className="cert-brand-tagline" style={{
                 fontSize: '8.5px',
                 fontWeight: 800,
                 color: '#64748b',
@@ -434,14 +444,14 @@ export default function CertificateCard({
           </div>
 
           {/* Metadata Block: Certificate ID & Issued On */}
-          <div style={{
+          <div className="cert-meta-block" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '20px',
             textAlign: 'left'
           }}>
             <div>
-              <div style={{
+              <div className="cert-meta-label" style={{
                 fontSize: '10px',
                 fontWeight: 700,
                 color: '#94a3b8',
@@ -450,7 +460,7 @@ export default function CertificateCard({
               }}>
                 CERTIFICATE ID
               </div>
-              <div style={{
+              <div className="cert-meta-val" style={{
                 fontSize: '13.5px',
                 fontWeight: 800,
                 color: '#0f172a',
@@ -462,10 +472,10 @@ export default function CertificateCard({
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '32px', background: '#e2e8f0' }} />
+            <div className="cert-meta-divider" style={{ width: '1px', height: '32px', background: '#e2e8f0' }} />
 
             <div>
-              <div style={{
+              <div className="cert-meta-label" style={{
                 fontSize: '10px',
                 fontWeight: 700,
                 color: '#94a3b8',
@@ -474,7 +484,7 @@ export default function CertificateCard({
               }}>
                 ISSUED ON
               </div>
-              <div style={{
+              <div className="cert-meta-val" style={{
                 fontSize: '13.5px',
                 fontWeight: 800,
                 color: '#0f172a',
@@ -493,7 +503,7 @@ export default function CertificateCard({
         ===================================================================== */}
         <div className="cert-middle-section" style={{ position: 'relative', zIndex: 2, margin: '22px 0 16px' }}>
           {/* Header Title */}
-          <div style={{
+          <div className="cert-sub-title" style={{
             fontSize: '12px',
             fontWeight: 800,
             color: '#64748b',
@@ -503,7 +513,7 @@ export default function CertificateCard({
           }}>
             CERTIFICATE OF
           </div>
-          <div style={{
+          <div className="cert-main-title" style={{
             fontSize: 'clamp(36px, 5.2vw, 48px)',
             fontWeight: 900,
             letterSpacing: '-0.025em',
@@ -514,7 +524,7 @@ export default function CertificateCard({
             COMPLETION
           </div>
 
-          <div style={{
+          <div className="cert-pres-title" style={{
             fontSize: '10px',
             fontWeight: 800,
             color: '#94a3b8',
@@ -526,7 +536,7 @@ export default function CertificateCard({
           </div>
 
           {/* Recipient Full Name */}
-          <div style={{
+          <div className="cert-student-name" style={{
             fontSize: 'clamp(32px, 4.6vw, 44px)',
             fontWeight: 800,
             color: '#0f172a',
@@ -537,7 +547,7 @@ export default function CertificateCard({
           </div>
 
           {/* Sleek Underline Accent Bar (Left 25% emerald green, Right 75% soft slate) */}
-          <div style={{
+          <div className="cert-accent-bar" style={{
             display: 'flex',
             width: 'clamp(280px, 46%, 420px)',
             height: '3px',
@@ -570,8 +580,8 @@ export default function CertificateCard({
             flexWrap: 'wrap'
           }}>
             {/* 1. Study Hours */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '20px' }}>
-              <div style={{
+            <div className="cert-metric-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '20px' }}>
+              <div className="cert-metric-icon" style={{
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
@@ -585,7 +595,7 @@ export default function CertificateCard({
                 <Clock size={18} strokeWidth={2.4} />
               </div>
               <div>
-                <div style={{
+                <div className="cert-metric-label" style={{
                   fontSize: '9.5px',
                   fontWeight: 800,
                   color: '#94a3b8',
@@ -594,17 +604,17 @@ export default function CertificateCard({
                 }}>
                   STUDY HOURS
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                <div className="cert-metric-val" style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                   {studyHours}
                 </div>
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '32px', background: '#e2e8f0', marginRight: '20px' }} />
+            <div className="cert-metric-divider" style={{ width: '1px', height: '32px', background: '#e2e8f0', marginRight: '20px' }} />
 
             {/* 2. Course Duration */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '20px' }}>
-              <div style={{
+            <div className="cert-metric-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '20px' }}>
+              <div className="cert-metric-icon" style={{
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
@@ -618,7 +628,7 @@ export default function CertificateCard({
                 <BookOpen size={18} strokeWidth={2.4} />
               </div>
               <div>
-                <div style={{
+                <div className="cert-metric-label" style={{
                   fontSize: '9.5px',
                   fontWeight: 800,
                   color: '#94a3b8',
@@ -627,17 +637,17 @@ export default function CertificateCard({
                 }}>
                   COURSE DURATION
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                <div className="cert-metric-val" style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                   {courseDuration}
                 </div>
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '32px', background: '#e2e8f0', marginRight: '20px' }} />
+            <div className="cert-metric-divider" style={{ width: '1px', height: '32px', background: '#e2e8f0', marginRight: '20px' }} />
 
             {/* 3. Skill Level */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
+            <div className="cert-metric-item" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="cert-metric-icon" style={{
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
@@ -651,7 +661,7 @@ export default function CertificateCard({
                 <BarChart3 size={18} strokeWidth={2.4} />
               </div>
               <div>
-                <div style={{
+                <div className="cert-metric-label" style={{
                   fontSize: '9.5px',
                   fontWeight: 800,
                   color: '#94a3b8',
@@ -660,7 +670,7 @@ export default function CertificateCard({
                 }}>
                   SKILL LEVEL
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                <div className="cert-metric-val" style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                   {skillLevel}
                 </div>
               </div>
@@ -680,9 +690,9 @@ export default function CertificateCard({
           paddingTop: '8px'
         }}>
           {/* Left: Signature Block */}
-          <div style={{ textAlign: 'left' }}>
+          <div className="cert-signature-block" style={{ textAlign: 'left' }}>
             <SignatureSvg />
-            <div style={{
+            <div className="cert-sign-name" style={{
               fontSize: '13.5px',
               fontWeight: 800,
               color: '#0f172a',
@@ -690,7 +700,7 @@ export default function CertificateCard({
             }}>
               Qualifier Mentor Team
             </div>
-            <div style={{
+            <div className="cert-sign-role" style={{
               fontSize: '9.5px',
               fontWeight: 800,
               color: '#94a3b8',
@@ -702,7 +712,7 @@ export default function CertificateCard({
           </div>
 
           {/* Right: Verifiable QR Code & Direct Link */}
-          <div style={{
+          <div className="cert-qr-block" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
@@ -710,6 +720,7 @@ export default function CertificateCard({
           }}>
             {/* Live QR Code Box */}
             <a
+              className="cert-qr-box"
               href={directBrowserUrl}
               onClick={handleVerifyClick}
               title={`Scan with phone or click to verify ${certificateId}`}
@@ -744,8 +755,8 @@ export default function CertificateCard({
               )}
             </a>
 
-            <div>
-              <div style={{
+            <div className="cert-qr-info">
+              <div className="cert-qr-title" style={{
                 fontSize: '13px',
                 fontWeight: 800,
                 color: '#0f172a',
@@ -754,6 +765,7 @@ export default function CertificateCard({
                 Verify Certificate
               </div>
               <a
+                className="cert-qr-link"
                 href={effectiveVerificationUrl}
                 onClick={handleVerifyClick}
                 style={{
@@ -775,15 +787,183 @@ export default function CertificateCard({
         </div>
       </div>
 
-      {/* Global Print Media Styles & Single-Page Certificate Guarantee */}
+      {/* Responsive Screen Styles & Global Print Media Styles */}
       <style>{`
+        /* =========================================================================
+           1. RESPONSIVE MOBILE SCREEN STYLES (Small, True Landscape, No Overlapping)
+        ========================================================================= */
+        @media screen and (max-width: 768px) {
+          .certificate-card {
+            min-height: 0 !important;
+            aspect-ratio: 1.55 / 1 !important;
+            padding: clamp(10px, 3.2vw, 22px) clamp(12px, 3.8vw, 26px) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.1) !important;
+          }
+
+          /* Emblem on the right: neatly scaled and positioned to prevent any overlap */
+          .cert-emblem-wrapper {
+            width: clamp(70px, 20vw, 115px) !important;
+            right: clamp(8px, 2.2vw, 18px) !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            opacity: 0.9 !important;
+          }
+          .cert-emblem-svg {
+            width: 100% !important;
+            height: auto !important;
+          }
+          .cert-emblem-text {
+            font-size: clamp(6px, 1.5vw, 8.5px) !important;
+            letter-spacing: 0.15em !important;
+            margin-top: 4px !important;
+            line-height: 1.3 !important;
+          }
+          .cert-emblem-bar {
+            width: 16px !important;
+            height: 2px !important;
+            margin: 3px auto 0 !important;
+          }
+
+          /* Brand Logo & Wordmark */
+          .cert-logo-img {
+            width: clamp(24px, 5.5vw, 36px) !important;
+            height: auto !important;
+          }
+          .cert-brand-block {
+            gap: clamp(6px, 1.8vw, 12px) !important;
+          }
+          .cert-brand-name {
+            font-size: clamp(13px, 3.5vw, 20px) !important;
+          }
+          .cert-brand-tagline {
+            font-size: clamp(5px, 1.3vw, 7.5px) !important;
+            letter-spacing: 0.14em !important;
+            margin-top: 2px !important;
+          }
+
+          /* Top Metadata: Certificate ID & Date */
+          .cert-meta-block {
+            gap: clamp(8px, 2.2vw, 16px) !important;
+          }
+          .cert-meta-label {
+            font-size: clamp(6.5px, 1.6vw, 9px) !important;
+          }
+          .cert-meta-val {
+            font-size: clamp(8.5px, 2.2vw, 12px) !important;
+            margin-top: 1px !important;
+          }
+          .cert-meta-divider {
+            height: clamp(16px, 4vw, 28px) !important;
+          }
+
+          /* Middle Text Section: Constrained to 65% width to avoid right emblem */
+          .cert-middle-section {
+            margin: clamp(6px, 1.5vw, 14px) 0 !important;
+            max-width: 66% !important;
+          }
+          .cert-sub-title {
+            font-size: clamp(6.5px, 1.6vw, 9px) !important;
+            margin-bottom: 1px !important;
+          }
+          .cert-main-title {
+            font-size: clamp(15px, 4.2vw, 28px) !important;
+            margin-bottom: clamp(2px, 0.8vw, 6px) !important;
+          }
+          .cert-pres-title {
+            font-size: clamp(6px, 1.4vw, 8px) !important;
+            margin-bottom: 2px !important;
+          }
+          .cert-student-name {
+            font-size: clamp(14px, 3.8vw, 24px) !important;
+            line-height: 1.1 !important;
+          }
+          .cert-accent-bar {
+            width: clamp(100px, 30vw, 200px) !important;
+            height: 2px !important;
+            margin: clamp(2px, 0.6vw, 5px) 0 clamp(3px, 0.8vw, 7px) !important;
+          }
+          .cert-citation {
+            font-size: clamp(7.5px, 1.8vw, 10.5px) !important;
+            line-height: 1.35 !important;
+            max-width: 100% !important;
+          }
+
+          /* Metric Badges Row: Fits cleanly on single line */
+          .cert-metrics-row {
+            margin-top: clamp(6px, 1.4vw, 12px) !important;
+            gap: clamp(4px, 1.2vw, 10px) !important;
+            flex-wrap: nowrap !important;
+          }
+          .cert-metric-item {
+            gap: clamp(4px, 1vw, 8px) !important;
+            padding-right: 0 !important;
+          }
+          .cert-metric-icon {
+            width: clamp(18px, 4.2vw, 28px) !important;
+            height: clamp(18px, 4.2vw, 28px) !important;
+          }
+          .cert-metric-icon svg {
+            width: clamp(9px, 2.2vw, 14px) !important;
+            height: clamp(9px, 2.2vw, 14px) !important;
+          }
+          .cert-metric-label {
+            font-size: clamp(5px, 1.2vw, 7px) !important;
+            letter-spacing: 0.04em !important;
+          }
+          .cert-metric-val {
+            font-size: clamp(7.5px, 1.8vw, 11px) !important;
+          }
+          .cert-metric-divider {
+            height: clamp(14px, 3.5vw, 22px) !important;
+            margin-right: clamp(4px, 1vw, 10px) !important;
+          }
+
+          /* Bottom Section: Signature & QR Code */
+          .cert-bottom-section {
+            padding-top: clamp(2px, 0.6vw, 6px) !important;
+          }
+          .cert-signature-wrapper {
+            height: clamp(22px, 5.2vw, 36px) !important;
+          }
+          .cert-signature-img {
+            height: clamp(22px, 5.2vw, 36px) !important;
+            max-width: clamp(70px, 18vw, 120px) !important;
+          }
+          .cert-sign-name {
+            font-size: clamp(7.5px, 1.8vw, 11px) !important;
+            margin-top: 1px !important;
+          }
+          .cert-sign-role {
+            font-size: clamp(5px, 1.2vw, 7px) !important;
+            letter-spacing: 0.08em !important;
+          }
+          .cert-qr-block {
+            gap: clamp(5px, 1.4vw, 10px) !important;
+          }
+          .cert-qr-box {
+            width: clamp(32px, 8vw, 48px) !important;
+            height: clamp(32px, 8vw, 48px) !important;
+            padding: 2px !important;
+          }
+          .cert-qr-title {
+            font-size: clamp(7.5px, 1.8vw, 11px) !important;
+          }
+          .cert-qr-link {
+            font-size: clamp(6.5px, 1.5vw, 9px) !important;
+          }
+        }
+
+        /* =========================================================================
+           2. GLOBAL PRINT MEDIA STYLES (Single Page Landscape Guarantee on All Devices)
+        ========================================================================= */
         @page {
           size: landscape;
-          margin: 6mm;
+          margin: 5mm;
         }
 
         @media print {
-          /* 1. Reset root to standard 100% page dimensions */
+          /* 1. Reset root to standard 100% single page dimensions */
           html, body {
             width: 100% !important;
             height: 100% !important;
@@ -838,7 +1018,7 @@ export default function CertificateCard({
             transition: none !important;
           }
 
-          /* 5. Flatten all ancestor containers */
+          /* 5. Flatten all ancestor containers so they occupy zero extra space */
           #root,
           .app-container,
           .max-width-wrapper,
@@ -867,27 +1047,30 @@ export default function CertificateCard({
             visibility: visible !important;
           }
 
-          /* 7. Pixel-perfect, perfectly scaled single-page certificate canvas */
+          /* 7. Centered, scaled landscape certificate: fits on 1 single sheet on desktop and mobile */
           #printable-certificate {
             position: fixed !important;
             top: 0 !important;
+            bottom: 0 !important;
             left: 0 !important;
             right: 0 !important;
-            bottom: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            max-width: 100% !important;
-            max-height: 100% !important;
+            margin: auto !important;
+
+            /* Proportionally sized with safe buffer so nothing touches edges or overflows */
+            width: 94% !important;
+            max-width: 94% !important;
+            height: auto !important;
+            max-height: 92% !important;
+            aspect-ratio: 1.55 / 1 !important;
             min-height: 0 !important;
-            aspect-ratio: auto !important;
-            margin: 0 !important;
+
             box-sizing: border-box !important;
-            padding: 24px 34px !important;
+            padding: 22px 32px !important;
             border-radius: 6px !important;
             background: #ffffff !important;
             z-index: 999999 !important;
-            
-            /* Professional double border that cannot be cut off (contained in box) */
+
+            /* Contained double border */
             border: 6px solid #047857 !important;
             box-shadow: inset 0 0 0 2px #ffffff, inset 0 0 0 4px #10b981 !important;
             outline: none !important;
@@ -909,33 +1092,43 @@ export default function CertificateCard({
             print-color-adjust: exact !important;
           }
 
-          /* 8. Fix emblem filter artifact (remove white box around emblem in print) */
+          /* 8. Emblem watermark in print: transparent vector without white bounding box */
           .cert-emblem-wrapper,
           .cert-emblem-drop {
             filter: none !important;
             box-shadow: none !important;
           }
           .cert-emblem-wrapper {
-            right: 32px !important;
+            right: 28px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
+            width: 140px !important;
+          }
+          .cert-emblem-svg {
+            width: 100% !important;
+            height: auto !important;
           }
 
-          /* 9. Inner layout adjustments for crisp print typography */
+          /* 9. Balanced print typography */
           .cert-middle-section {
-            margin: 10px 0 8px !important;
+            margin: 8px 0 6px !important;
+            max-width: 66% !important;
           }
-
-          .cert-metrics-row {
-            margin-top: 12px !important;
+          .cert-main-title {
+            font-size: 28px !important;
+            margin-bottom: 4px !important;
           }
-
+          .cert-student-name {
+            font-size: 26px !important;
+          }
           .cert-citation {
-            font-size: 12.5px !important;
-            line-height: 1.45 !important;
-            max-width: 540px !important;
+            font-size: 11.5px !important;
+            line-height: 1.4 !important;
+            max-width: 520px !important;
           }
-
+          .cert-metrics-row {
+            margin-top: 10px !important;
+          }
           .cert-bottom-section {
             padding-top: 4px !important;
           }
