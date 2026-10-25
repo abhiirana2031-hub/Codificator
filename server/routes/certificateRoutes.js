@@ -1,12 +1,43 @@
 import express from 'express';
 import { queryAll, queryOne } from '../db/db.js';
 import { queryAllNeon, queryOneNeon } from '../db/neon.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 import { issueCertificateIfEligible } from '../services/progressionEngine.js';
 import { createNotification } from '../services/notificationService.js';
 
 const router = express.Router();
 const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+// Admin & Operator: List all distributed certificates across platform
+router.get('/', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
+  if (IS_SERVERLESS) {
+    try {
+      const certs = await queryAllNeon(
+        `SELECT cert.*, c.title as course_title, c.category as course_category, c.thumbnail as course_thumbnail,
+                u.name as student_name, u.email as student_email, u.avatar_url as student_avatar
+         FROM certificates cert
+         JOIN courses c ON cert.course_id = c.id
+         JOIN users u ON cert.user_id = u.id
+         ORDER BY cert.issue_date DESC`
+      );
+      return res.json({ certificates: certs });
+    } catch (err) {
+      console.error('[certificateRoutes] Neon error in GET /:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch certificates from Neon' });
+    }
+  }
+
+  const certs = queryAll(
+    `SELECT cert.*, c.title as course_title, c.category as course_category, c.thumbnail as course_thumbnail,
+            u.name as student_name, u.email as student_email, u.avatar_url as student_avatar
+     FROM certificates cert
+     JOIN courses c ON cert.course_id = c.id
+     JOIN users u ON cert.user_id = u.id
+     ORDER BY cert.issue_date DESC`
+  );
+
+  return res.json({ certificates: certs });
+});
 
 // List user's earned certificates
 router.get('/my', requireAuth, async (req, res) => {

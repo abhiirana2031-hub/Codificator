@@ -417,6 +417,9 @@ export const lmsApi = {
   },
 
   // Certificates
+  async getAllCertificates() {
+    return request('/certificates');
+  },
   async getMyCertificates() {
     return request('/certificates/my');
   },

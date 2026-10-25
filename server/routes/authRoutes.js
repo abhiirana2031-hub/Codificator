@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
-import { queryOneNeon, runNeonQuery } from '../db/neon.js';
+import { queryAllNeon, queryOneNeon, runNeonQuery } from '../db/neon.js';
 import { parseAuthUser, resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -62,8 +62,44 @@ router.get('/me', async (req, res) => {
 });
 
 // 2. Admin & Operator only: List registered users with pagination & search
-router.get('/users', requireAuth, requireRole('ADMIN', 'OPERATOR'), (req, res) => {
+router.get('/users', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
   const { search, role, page = 1, limit = 50 } = req.query;
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    try {
+      let sql = 'SELECT id, email, name, display_name, role, avatar_url, phone, college, is_active, created_at FROM users WHERE 1=1';
+      const params = [];
+
+      if (role && role !== 'ALL') {
+        sql += ' AND UPPER(role) = ?';
+        params.push(role.toUpperCase());
+      }
+
+      if (search && search.trim()) {
+        sql += ' AND (name ILIKE ? OR email ILIKE ? OR phone ILIKE ?)';
+        const term = `%${search.trim()}%`;
+        params.push(term, term, term);
+      }
+
+      sql += ' ORDER BY created_at DESC';
+
+      const allUsers = await queryAllNeon(sql, params);
+      const count = allUsers.length;
+      const offset = (Number(page) - 1) * Number(limit);
+      const paginated = allUsers.slice(offset, offset + Number(limit));
+
+      return res.json({
+        users: paginated.map(sanitizeUser),
+        total: count,
+        page: Number(page),
+        limit: Number(limit)
+      });
+    } catch (err) {
+      console.error('[authRoutes GET /users Neon error]:', err.message);
+    }
+  }
+
   let sql = 'SELECT id, email, name, display_name, role, avatar_url, phone, college, is_active, created_at FROM users WHERE 1=1';
   const params = [];
 
@@ -394,41 +430,77 @@ router.post('/change-password', requireAuth, (req, res) => {
   return res.json({ success: true, message: 'Password changed successfully' });
 });
 
-// 10. Admin: Toggle user active/deactive status
-router.patch('/users/:id/status', requireAuth, requireRole('ADMIN'), (req, res) => {
+// 10. Admin & Operator: Toggle user active/deactive status
+router.patch('/users/:id/status', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
   const { isActive } = req.body;
-  const targetUser = queryOne('SELECT id, role FROM users WHERE id = ?', [req.params.id]);
+  const targetId = req.params.id;
 
+  if (targetId === req.user.id) {
+    return res.status(400).json({ error: 'You cannot deactivate your own administrative account' });
+  }
+
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const targetUser = await queryOneNeon('SELECT id, role FROM users WHERE id = $1', [targetId]);
+      if (!targetUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      await runNeonQuery('UPDATE users SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [isActive ? true : false, targetId]);
+      logAudit(req.user.id, 'USER_STATUS_TOGGLED', 'user', targetId, { isActive });
+      return res.json({ success: true, is_active: Boolean(isActive) });
+    } catch (err) {
+      console.error('[authRoutes status toggle Neon error]:', err.message);
+      return res.status(500).json({ error: 'Failed to update user status in Neon' });
+    }
+  }
+
+  const targetUser = queryOne('SELECT id, role FROM users WHERE id = ?', [targetId]);
   if (!targetUser) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  if (targetUser.id === req.user.id) {
-    return res.status(400).json({ error: 'You cannot deactivate your own administrative account' });
-  }
-
-  runQuery('UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [isActive ? 1 : 0, req.params.id]);
-  logAudit(req.user.id, 'USER_STATUS_TOGGLED', 'user', req.params.id, { isActive });
+  runQuery('UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [isActive ? 1 : 0, targetId]);
+  logAudit(req.user.id, 'USER_STATUS_TOGGLED', 'user', targetId, { isActive });
 
   return res.json({ success: true, is_active: Boolean(isActive) });
 });
 
-// 11. Admin: Update user role
-router.patch('/users/:id/role', requireAuth, requireRole('ADMIN'), (req, res) => {
+// 11. Admin & Operator: Update user role
+router.patch('/users/:id/role', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
   const { role } = req.body;
+  const targetId = req.params.id;
   const allowed = ['ADMIN', 'OPERATOR', 'INSTRUCTOR', 'STUDENT'];
 
   if (!role || !allowed.includes(role.toUpperCase())) {
     return res.status(400).json({ error: `Invalid role. Allowed roles: ${allowed.join(', ')}` });
   }
 
-  const targetUser = queryOne('SELECT id, role FROM users WHERE id = ?', [req.params.id]);
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  if (IS_SERVERLESS) {
+    try {
+      const targetUser = await queryOneNeon('SELECT id, role FROM users WHERE id = $1', [targetId]);
+      if (!targetUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      await runNeonQuery('UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [role.toUpperCase(), targetId]);
+      logAudit(req.user.id, 'USER_ROLE_CHANGED', 'user', targetId, { from: targetUser.role, to: role.toUpperCase() });
+      return res.json({ success: true, role: role.toUpperCase() });
+    } catch (err) {
+      console.error('[authRoutes role update Neon error]:', err.message);
+      return res.status(500).json({ error: 'Failed to update user role in Neon' });
+    }
+  }
+
+  const targetUser = queryOne('SELECT id, role FROM users WHERE id = ?', [targetId]);
   if (!targetUser) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  runQuery('UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [role.toUpperCase(), req.params.id]);
-  logAudit(req.user.id, 'USER_ROLE_CHANGED', 'user', req.params.id, { from: targetUser.role, to: role.toUpperCase() });
+  runQuery('UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [role.toUpperCase(), targetId]);
+  logAudit(req.user.id, 'USER_ROLE_CHANGED', 'user', targetId, { from: targetUser.role, to: role.toUpperCase() });
 
   return res.json({ success: true, role: role.toUpperCase() });
 });

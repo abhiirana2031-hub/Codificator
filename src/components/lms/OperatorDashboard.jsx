@@ -29,7 +29,8 @@ import {
   Check,
   RotateCcw,
   UploadCloud,
-  X
+  X,
+  Copy
 } from 'lucide-react';
 import PdfCourseUploadModal from './PdfCourseUploadModal';
 import MarkdownEditor from '../admin/MarkdownEditor';
@@ -46,6 +47,12 @@ export default function OperatorDashboard({ onPreviewCourse }) {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  // Certificates State
+  const [certificatesList, setCertificatesList] = useState([]);
+  const [certificatesLoading, setCertificatesLoading] = useState(false);
+  const [certificateSearch, setCertificateSearch] = useState('');
+  const [copiedCertCode, setCopiedCertCode] = useState(null);
 
   // New Course Modal State
   const [isNewCourseOpen, setIsNewCourseOpen] = useState(false);
@@ -128,7 +135,14 @@ export default function OperatorDashboard({ onPreviewCourse }) {
   useEffect(() => {
     loadCourses();
     loadAnalytics();
+    loadCertificates();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'certificates') {
+      loadCertificates();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (selectedCourseId) {
@@ -139,6 +153,18 @@ export default function OperatorDashboard({ onPreviewCourse }) {
   const showNotification = (msg, type = 'success') => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const loadCertificates = async () => {
+    try {
+      setCertificatesLoading(true);
+      const res = await lmsApi.getAllCertificates();
+      setCertificatesList(res.certificates || []);
+    } catch (err) {
+      console.warn('Certificates load error:', err);
+    } finally {
+      setCertificatesLoading(false);
+    }
   };
 
   const loadCourses = async () => {
@@ -1388,27 +1414,258 @@ export default function OperatorDashboard({ onPreviewCourse }) {
       )}
 
       {/* TAB 6: CERTIFICATES */}
-      {activeTab === 'certificates' && (
-        <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '16px' }}>Issued Credentials & Certificates</h2>
-          <div style={{ background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border-color)', padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <ShieldCheck size={20} color="var(--brand-green)" />
-              <span style={{ fontWeight: 700, fontSize: '14px' }}>
-                Total Verified Credentials Issued: {analytics?.metrics?.certificatesIssued || 0}
-              </span>
+      {activeTab === 'certificates' && (() => {
+        const filteredCerts = certificatesList.filter(c => {
+          if (!certificateSearch.trim()) return true;
+          const query = certificateSearch.toLowerCase().trim();
+          return (
+            (c.student_name && c.student_name.toLowerCase().includes(query)) ||
+            (c.student_email && c.student_email.toLowerCase().includes(query)) ||
+            (c.course_title && c.course_title.toLowerCase().includes(query)) ||
+            (c.certificate_code && c.certificate_code.toLowerCase().includes(query))
+          );
+        });
+
+        const uniqueStudents = new Set(certificatesList.map(c => c.user_id)).size;
+        const uniqueCourses = new Set(certificatesList.map(c => c.course_id)).size;
+
+        return (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Distributed Certificates & Credentials</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
+                  Live registry of all student certificates issued upon successful course and assessment completion.
+                </p>
+              </div>
+              <button
+                onClick={loadCertificates}
+                disabled={certificatesLoading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  cursor: certificatesLoading ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px'
+                }}
+              >
+                <RotateCcw size={15} style={{ animation: certificatesLoading ? 'spin 1s linear infinite' : 'none' }} />
+                Refresh Registry
+              </button>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '16px' }}>
-              Certificates are automatically generated when a student completes all required lessons, passes the prerequisite quizzes, and receives approved grades on capstone assignments.
-            </p>
-            <div style={{ display: 'inline-block' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-green)' }}>
-                Sample Issued Certificate Code: <code>CODIF-2026-ALX99</code>
-              </span>
+
+            {/* Quick Metrics Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ background: 'var(--bg-card)', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <Award size={18} color="var(--brand-green)" />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Distributed</span>
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {certificatesList.length}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-card)', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <ShieldCheck size={18} color="#3b82f6" />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Certified Students</span>
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {uniqueStudents}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-card)', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <BookOpen size={18} color="#8b5cf6" />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Graduated Courses</span>
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {uniqueCourses}
+                </div>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div style={{ marginBottom: '16px', position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <input
+                type="text"
+                value={certificateSearch}
+                onChange={(e) => setCertificateSearch(e.target.value)}
+                placeholder="Search certificates by student name, email, course title, or verification code..."
+                style={{
+                  width: '100%',
+                  padding: '10px 14px 10px 38px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '13.5px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Certificates Table */}
+            <div style={{ background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+              {certificatesLoading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <RotateCcw size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px auto' }} />
+                  <div>Loading platform certificates from Neon...</div>
+                </div>
+              ) : filteredCerts.length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                  <Award size={40} color="var(--text-secondary)" style={{ opacity: 0.4, margin: '0 auto 12px auto' }} />
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>No Certificates Found</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>
+                    {certificateSearch ? 'No distributed certificates matched your search criteria.' : 'No certificates have been issued yet. Certificates are generated upon course completion.'}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                        <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Student</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Course</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Credential Code</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Issue Date</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Status</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCerts.map((cert) => (
+                        <tr key={cert.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          {/* Student */}
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{
+                                width: '34px',
+                                height: '34px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: '13px',
+                                flexShrink: 0
+                              }}>
+                                {cert.student_name ? cert.student_name.charAt(0).toUpperCase() : 'S'}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{cert.student_name || 'Anonymous Student'}</div>
+                                <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>{cert.student_email || 'No email provided'}</div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Course */}
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cert.course_title || cert.course_id}</div>
+                            {cert.course_category && (
+                              <span style={{
+                                display: 'inline-block',
+                                fontSize: '10.5px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: 'rgba(59, 130, 246, 0.1)',
+                                color: '#3b82f6',
+                                marginTop: '4px',
+                                fontWeight: 600
+                              }}>
+                                {cert.course_category}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Credential Code */}
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                              <code style={{ fontWeight: 700, color: 'var(--brand-green)', fontSize: '12px' }}>
+                                {cert.certificate_code}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(cert.certificate_code);
+                                  setCopiedCertCode(cert.certificate_code);
+                                  setTimeout(() => setCopiedCertCode(null), 2000);
+                                }}
+                                title="Copy credential code"
+                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
+                              >
+                                {copiedCertCode === cert.certificate_code ? <Check size={13} color="var(--brand-green)" /> : <Copy size={13} />}
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Issue Date */}
+                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '12.5px' }}>
+                            {cert.issue_date ? new Date(cert.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                          </td>
+
+                          {/* Status */}
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              background: 'rgba(16, 185, 129, 0.12)',
+                              color: 'var(--brand-green)',
+                              fontWeight: 700,
+                              fontSize: '11px'
+                            }}>
+                              <ShieldCheck size={12} />
+                              VERIFIED & ACTIVE
+                            </span>
+                          </td>
+
+                          {/* Action */}
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <a
+                              href={`/verify/${cert.certificate_code}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                background: 'var(--brand-green)',
+                                color: '#ffffff',
+                                textDecoration: 'none',
+                                fontWeight: 700,
+                                fontSize: '11.5px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Verify
+                              <ExternalLink size={12} />
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB 7: ANALYTICS */}
       {activeTab === 'analytics' && (
