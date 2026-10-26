@@ -6,7 +6,11 @@ async function test() {
     'CF-FS-10427',
     'CFWD-2026-10427',
     'CF-CPP-28353',
-    'CF-PY-95827'
+    'CF-PY-95827',
+    'CF-PY-59166',
+    'CF-FS-22409',
+    'CF-FS-10398',
+    'CF-PY-29386'
   ];
 
   for (const t of tests) {

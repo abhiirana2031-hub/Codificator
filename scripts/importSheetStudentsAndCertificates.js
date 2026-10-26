@@ -44,7 +44,7 @@ function parseCSV(text) {
 
       let courseId = 'vexor-fullstack';
       const cLower = rawCourse.toLowerCase();
-      if (cLower.includes('python')) {
+      if (cLower.includes('python') || cLower.includes('ai') || cLower.includes('ml')) {
         courseId = 'vexor-python';
       } else if (cLower.includes('c++') || cLower.includes('cpp')) {
         courseId = 'vexor-cpp';

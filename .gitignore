@@ -29,3 +29,7 @@ tests/*.db
 tests/*.db-shm
 tests/*.db-wal
 .neon
+
+# Provisioning & student credentials scripts
+scripts/assignStudentPasswords.js
+scripts/importNewStudentsAfterArpit.js
