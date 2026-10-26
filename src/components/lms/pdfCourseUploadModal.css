@@ -162,7 +162,7 @@ div.border-2.border-dashed {
 .text-center { text-align: center !important; }
 .text-left { text-align: left !important; }
 .truncate { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-.line-clamp-1 { display: -webkit-box !important; -webkit-line-clamp: 1 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
+.line-clamp-1 { display: -webkit-box !important; -webkit-line-clamp: 1 !important; line-clamp: 1 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
 .list-disc { list-style-type: disc !important; }
 .list-inside { list-style-position: inside !important; }
 
