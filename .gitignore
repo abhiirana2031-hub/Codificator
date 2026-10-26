@@ -30,6 +30,10 @@ tests/*.db-shm
 tests/*.db-wal
 .neon
 
-# Provisioning & student credentials scripts
+# Provisioning, student credentials, and sheet migration scripts
 scripts/assignStudentPasswords.js
 scripts/importNewStudentsAfterArpit.js
+scripts/importSheetStudentsAndCertificates.js
+scripts/reassignDistinctNonSerialCertificates.js
+scripts/checkSheetTabs.js
+scripts/syncLocalToNeon.js
