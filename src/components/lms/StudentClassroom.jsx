@@ -30,7 +30,8 @@ import {
   Bookmark,
   Edit3,
   Save,
-  Trash2
+  Trash2,
+  Unlock
 } from 'lucide-react';
 import CodingExerciseWidget from '../CodingExerciseWidget';
 import CertificateModal from './CertificateModal';
@@ -38,10 +39,22 @@ import CertificateModal from './CertificateModal';
 export default function StudentClassroom({
   courseId = 'vexor-fullstack',
   onBackToCatalog,
-  onNavigateVerify
+  onNavigateVerify,
+  currentUser = null
 }) {
   const [courseData, setCourseData] = useState(null);
   const [resolvedCourseId, setResolvedCourseId] = useState(courseId);
+  const [activeUser, setActiveUser] = useState(currentUser);
+
+  useEffect(() => {
+    if (currentUser) {
+      setActiveUser(currentUser);
+    } else {
+      lmsApi.getMe().then(res => {
+        if (res?.user) setActiveUser(res.user);
+      }).catch(() => {});
+    }
+  }, [currentUser]);
   const [curriculum, setCurriculum] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [activeTab, setActiveTab] = useState('notes'); // 'notes' | 'resources' | 'quiz' | 'assignment'
@@ -375,6 +388,30 @@ export default function StudentClassroom({
     }
   };
 
+  // Admin Instant Unlock Handler for Course, Modules, and Certificate
+  const handleAdminInstantUnlock = async (withCertificate = false) => {
+    try {
+      setLoading(true);
+      const res = await lmsApi.adminUnlockCourse({
+        courseId: resolvedCourseId,
+        unlockAllModules: true,
+        unlockCertificate: withCertificate,
+        reason: 'Instant admin unlock directly from classroom'
+      });
+      showNotification(res.message || 'Course & all modules unlocked successfully!');
+      if (withCertificate && res.certificate) {
+        setCertificate(res.certificate);
+        setIsCertModalOpen(true);
+        triggerConfetti();
+      }
+      await loadCourseCurriculum();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAnswerSelect = (questionId, optionId, isMultiple = false) => {
     if (isMultiple) {
       const prev = selectedAnswers[questionId] || [];
@@ -571,6 +608,62 @@ export default function StudentClassroom({
               {courseData?.progress_percent || 0}%
             </span>
           </div>
+
+          {/* Admin Controls Toolbar (Visible to ADMIN & OPERATOR) */}
+          {(activeUser?.role === 'ADMIN' || activeUser?.role === 'OPERATOR') && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '6px',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1.5px dashed #ef4444'
+            }}>
+              <span style={{ fontSize: '11px', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase' }}>
+                ADMIN / OPERATOR
+              </span>
+              <button
+                onClick={() => handleAdminInstantUnlock(false)}
+                title="Admin: Unlock course and all its modules immediately"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 9px',
+                  borderRadius: '4px',
+                  background: 'var(--bg-card)',
+                  color: '#059669',
+                  border: '1px solid #10b981',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Unlock size={12} /> Unlock All Modules
+              </button>
+              <button
+                onClick={() => handleAdminInstantUnlock(true)}
+                title="Admin: Unlock course, all modules, and generate certificate immediately"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)'
+                }}
+              >
+                <Award size={12} /> Unlock Course & Certificate
+              </button>
+            </div>
+          )}
 
           {isCourseComplete ? (
             <button

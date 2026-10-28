@@ -1,4 +1,6 @@
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
+import { queryAllNeon, queryOneNeon, runNeonQuery } from '../db/neon.js';
+import { createNotification } from './notificationService.js';
 import crypto from 'node:crypto';
 
 /**
@@ -476,3 +478,275 @@ export function completeLesson(enrollmentId, lessonId, userId) {
     return result;
   });
 }
+
+/**
+ * Admin Action: Unlocks any course, all its modules, and optionally issues the verified certificate instantly.
+ */
+export async function adminUnlockCourse(userId, courseId, { unlockAllModules = true, unlockCertificate = false, adminUserId = null, reason = 'Administrative Instant Unlock' } = {}) {
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    const user = await queryOneNeon('SELECT id, name, email FROM users WHERE id = $1', [userId]);
+    if (!user) throw new Error('User not found');
+
+    const course = await queryOneNeon('SELECT id, title, slug FROM courses WHERE id = $1 OR slug = $2', [courseId, courseId]);
+    if (!course) throw new Error('Course not found');
+    const targetCourseId = course.id;
+
+    // 1. Grant Entitlement
+    const entitlementId = `ent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    await runNeonQuery(
+      `INSERT INTO course_entitlements (id, user_id, course_id, entitlement_type, granted_by, reason, is_active)
+       VALUES ($1, $2, $3, 'COMPLIMENTARY', $4, $5, TRUE)
+       ON CONFLICT (user_id, course_id) DO UPDATE SET
+         is_active = TRUE,
+         reason = EXCLUDED.reason,
+         granted_by = EXCLUDED.granted_by,
+         revoked_at = NULL`,
+      [entitlementId, userId, targetCourseId, adminUserId || 'ADMIN', reason]
+    );
+
+    // 2. Ensure Enrollment
+    let enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2', [userId, targetCourseId]);
+    if (!enrollment) {
+      const enrollId = `enr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      await runNeonQuery(
+        `INSERT INTO enrollments (id, user_id, course_id, status, progress_percent, completed_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [enrollId, userId, targetCourseId, unlockAllModules ? 'COMPLETED' : 'ACTIVE', unlockAllModules ? 100.0 : 0.0]
+      );
+      enrollment = await queryOneNeon('SELECT * FROM enrollments WHERE id = $1', [enrollId]);
+    } else if (unlockAllModules) {
+      await runNeonQuery(
+        `UPDATE enrollments
+         SET status = 'COMPLETED', progress_percent = 100.0, completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)
+         WHERE id = $1`,
+        [enrollment.id]
+      );
+    }
+
+    // 3. Unlock All Modules & Complete Lessons
+    if (unlockAllModules) {
+      const modules = await queryAllNeon('SELECT id FROM modules WHERE course_id = $1 ORDER BY order_index ASC', [targetCourseId]);
+      for (const m of modules) {
+        const mpId = `mp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        await runNeonQuery(
+          `INSERT INTO module_progress (id, enrollment_id, module_id, user_id, is_completed, is_unlocked, completed_at)
+           VALUES ($1, $2, $3, $4, TRUE, TRUE, CURRENT_TIMESTAMP)
+           ON CONFLICT (enrollment_id, module_id) DO UPDATE SET
+             is_completed = TRUE,
+             is_unlocked = TRUE,
+             completed_at = COALESCE(module_progress.completed_at, CURRENT_TIMESTAMP),
+             updated_at = CURRENT_TIMESTAMP`,
+          [mpId, enrollment.id, m.id, userId]
+        );
+      }
+
+      const lessons = await queryAllNeon(
+        'SELECT l.id, l.duration_minutes FROM lessons l JOIN modules m ON l.module_id = m.id WHERE m.course_id = $1',
+        [targetCourseId]
+      );
+      for (const l of lessons) {
+        const lpId = `lp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        await runNeonQuery(
+          `INSERT INTO lesson_progress (id, enrollment_id, lesson_id, user_id, status, last_playback_position, video_duration, watched_progress_percent, completed_at)
+           VALUES ($1, $2, $3, $4, 'COMPLETED', $5, $6, 100.0, CURRENT_TIMESTAMP)
+           ON CONFLICT (enrollment_id, lesson_id) DO UPDATE SET
+             status = 'COMPLETED',
+             watched_progress_percent = 100.0,
+             completed_at = COALESCE(lesson_progress.completed_at, CURRENT_TIMESTAMP),
+             updated_at = CURRENT_TIMESTAMP`,
+          [lpId, enrollment.id, l.id, userId, (l.duration_minutes || 10) * 60, (l.duration_minutes || 10) * 60]
+        );
+      }
+
+      const quizzes = await queryAllNeon(
+        'SELECT q.id FROM quizzes q JOIN modules m ON q.module_id = m.id WHERE m.course_id = $1',
+        [targetCourseId]
+      );
+      for (const q of quizzes) {
+        const existingAttempt = await queryOneNeon(
+          'SELECT id FROM quiz_attempts WHERE enrollment_id = $1 AND quiz_id = $2 AND is_passed = TRUE',
+          [enrollment.id, q.id]
+        );
+        if (!existingAttempt) {
+          const qaId = `qa-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          await runNeonQuery(
+            `INSERT INTO quiz_attempts (id, quiz_id, user_id, enrollment_id, score, max_score, percentage, is_passed)
+             VALUES ($1, $2, $3, $4, 100.0, 100.0, 100.0, TRUE)`,
+            [qaId, q.id, userId, enrollment.id]
+          );
+        }
+      }
+    }
+
+    // 4. Unlock / Issue Certificate Instantly
+    let certificate = null;
+    if (unlockCertificate) {
+      certificate = await queryOneNeon('SELECT * FROM certificates WHERE enrollment_id = $1', [enrollment.id]);
+      if (!certificate) {
+        const certId = `cert-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const hashInput = `${userId}:${targetCourseId}:${Date.now()}`;
+        const hashSuffix = crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 8).toUpperCase();
+        const certificateCode = `CFWD-${new Date().getFullYear()}-${hashSuffix}`;
+        await runNeonQuery(
+          `INSERT INTO certificates (id, certificate_code, user_id, course_id, enrollment_id, issue_date, completion_date, template_version, verification_url)
+           VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'v1', $6)
+           ON CONFLICT (enrollment_id) DO NOTHING`,
+          [certId, certificateCode, userId, targetCourseId, enrollment.id, `/verify/${certificateCode}`]
+        );
+        certificate = await queryOneNeon('SELECT * FROM certificates WHERE id = $1', [certId]);
+      }
+    }
+
+    return {
+      success: true,
+      user,
+      course,
+      enrollment,
+      certificate
+    };
+  }
+
+  // SQLite execution (Local Development / Self-hosted)
+  return transaction(() => {
+    const user = queryOne('SELECT id, name, email FROM users WHERE id = ?', [userId]);
+    if (!user) throw new Error('User not found');
+
+    const course = queryOne('SELECT id, title, slug FROM courses WHERE id = ? OR slug = ?', [courseId, courseId]);
+    if (!course) throw new Error('Course not found');
+    const targetCourseId = course.id;
+
+    // 1. Grant Entitlement
+    const entitlementId = `ent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    runQuery(
+      `INSERT INTO course_entitlements (id, user_id, course_id, entitlement_type, granted_by, reason, is_active)
+       VALUES (?, ?, ?, 'COMPLIMENTARY', ?, ?, 1)
+       ON CONFLICT (user_id, course_id) DO UPDATE SET
+         is_active = 1,
+         reason = excluded.reason,
+         granted_by = excluded.granted_by,
+         revoked_at = NULL`,
+      [entitlementId, userId, targetCourseId, adminUserId || 'ADMIN', reason]
+    );
+
+    // 2. Ensure Enrollment
+    let enrollment = queryOne('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, targetCourseId]);
+    if (!enrollment) {
+      const enrollId = `enr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      runQuery(
+        `INSERT INTO enrollments (id, user_id, course_id, status, progress_percent, completed_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [enrollId, userId, targetCourseId, unlockAllModules ? 'COMPLETED' : 'ACTIVE', unlockAllModules ? 100.0 : 0.0]
+      );
+      enrollment = queryOne('SELECT * FROM enrollments WHERE id = ?', [enrollId]);
+    } else if (unlockAllModules) {
+      runQuery(
+        `UPDATE enrollments
+         SET status = 'COMPLETED', progress_percent = 100.0, completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)
+         WHERE id = ?`,
+        [enrollment.id]
+      );
+    }
+
+    // 3. Unlock All Modules & Complete Lessons
+    if (unlockAllModules) {
+      const modules = queryAll('SELECT id FROM modules WHERE course_id = ? ORDER BY order_index ASC', [targetCourseId]);
+      for (const m of modules) {
+        const existingMp = queryOne('SELECT id FROM module_progress WHERE enrollment_id = ? AND module_id = ?', [enrollment.id, m.id]);
+        if (!existingMp) {
+          const mpId = `mp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          runQuery(
+            `INSERT INTO module_progress (id, enrollment_id, module_id, user_id, is_completed, is_unlocked, completed_at)
+             VALUES (?, ?, ?, ?, 1, 1, CURRENT_TIMESTAMP)`,
+            [mpId, enrollment.id, m.id, userId]
+          );
+        } else {
+          runQuery(
+            `UPDATE module_progress
+             SET is_completed = 1, is_unlocked = 1, completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [existingMp.id]
+          );
+        }
+      }
+
+      const lessons = queryAll(
+        'SELECT l.id, l.duration_minutes FROM lessons l JOIN modules m ON l.module_id = m.id WHERE m.course_id = ?',
+        [targetCourseId]
+      );
+      for (const l of lessons) {
+        const existingLp = queryOne('SELECT id FROM lesson_progress WHERE enrollment_id = ? AND lesson_id = ?', [enrollment.id, l.id]);
+        if (!existingLp) {
+          const lpId = `lp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          runQuery(
+            `INSERT INTO lesson_progress (id, enrollment_id, lesson_id, user_id, status, last_playback_position, video_duration, watched_progress_percent, completed_at)
+             VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?, 100.0, CURRENT_TIMESTAMP)`,
+            [lpId, enrollment.id, l.id, userId, (l.duration_minutes || 10) * 60, (l.duration_minutes || 10) * 60]
+          );
+        } else {
+          runQuery(
+            `UPDATE lesson_progress
+             SET status = 'COMPLETED', watched_progress_percent = 100.0, completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [existingLp.id]
+          );
+        }
+      }
+
+      const quizzes = queryAll(
+        'SELECT q.id FROM quizzes q JOIN modules m ON q.module_id = m.id WHERE m.course_id = ?',
+        [targetCourseId]
+      );
+      for (const q of quizzes) {
+        const existingAttempt = queryOne(
+          'SELECT id FROM quiz_attempts WHERE enrollment_id = ? AND quiz_id = ? AND is_passed = 1',
+          [enrollment.id, q.id]
+        );
+        if (!existingAttempt) {
+          const qaId = `qa-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          runQuery(
+            `INSERT INTO quiz_attempts (id, quiz_id, user_id, enrollment_id, score, max_score, percentage, is_passed)
+             VALUES (?, ?, ?, ?, 100.0, 100.0, 100.0, 1)`,
+            [qaId, q.id, userId, enrollment.id]
+          );
+        }
+      }
+    }
+
+    // 4. Instant Certificate Generation
+    let certificate = null;
+    if (unlockCertificate) {
+      certificate = queryOne('SELECT * FROM certificates WHERE enrollment_id = ?', [enrollment.id]);
+      if (!certificate) {
+        const certId = `cert-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const hashInput = `${userId}:${targetCourseId}:${Date.now()}`;
+        const hashSuffix = crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 8).toUpperCase();
+        const certificateCode = `CFWD-${new Date().getFullYear()}-${hashSuffix}`;
+        runQuery(
+          `INSERT INTO certificates (id, certificate_code, user_id, course_id, enrollment_id, issue_date, completion_date, template_version, verification_url)
+           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'v1', ?)`,
+          [certId, certificateCode, userId, targetCourseId, enrollment.id, `/verify/${certificateCode}`]
+        );
+        certificate = queryOne('SELECT * FROM certificates WHERE id = ?', [certId]);
+      }
+
+      createNotification({
+        userId,
+        title: 'Certificate of Completion Issued!',
+        message: `Your administrator has issued your verified certificate for "${course.title}". Code: ${certificate.certificate_code}`,
+        type: 'CERTIFICATE',
+        linkUrl: `/certificate/${certificate.certificate_code}`
+      });
+    }
+
+    return {
+      success: true,
+      user,
+      course,
+      enrollment: queryOne('SELECT * FROM enrollments WHERE id = ?', [enrollment.id]),
+      certificate
+    };
+  });
+}
+

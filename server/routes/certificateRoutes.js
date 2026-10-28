@@ -2,7 +2,7 @@ import express from 'express';
 import { queryAll, queryOne } from '../db/db.js';
 import { queryAllNeon, queryOneNeon } from '../db/neon.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { issueCertificateIfEligible } from '../services/progressionEngine.js';
+import { issueCertificateIfEligible, adminUnlockCourse } from '../services/progressionEngine.js';
 import { createNotification } from '../services/notificationService.js';
 
 const router = express.Router();
@@ -132,6 +132,37 @@ router.post('/claim/:courseId', requireAuth, (req, res) => {
     success: true,
     certificate: enrichedCert
   });
+});
+
+// Admin & Operator: Instantly unlock and issue certificate for any course and user
+router.post('/admin/instant-unlock', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
+  const { courseId, userId } = req.body;
+  if (!courseId) {
+    return res.status(400).json({ error: 'courseId is required.' });
+  }
+
+  const targetUserId = userId || req.user.id;
+
+  try {
+    const result = await adminUnlockCourse(targetUserId, courseId, {
+      unlockAllModules: true,
+      unlockCertificate: true,
+      adminUserId: req.user.id,
+      reason: 'Administrative instant certificate unlock'
+    });
+
+    return res.json({
+      success: true,
+      message: `Certificate instantly issued and verified for "${result.course.title}".`,
+      certificate: result.certificate,
+      enrollment: result.enrollment,
+      course: result.course,
+      user: result.user
+    });
+  } catch (err) {
+    console.error('[certificateRoutes admin instant-unlock error]:', err);
+    return res.status(500).json({ error: 'Failed to instantly unlock certificate: ' + err.message });
+  }
 });
 
 // Public certificate verification endpoint (no auth required!)

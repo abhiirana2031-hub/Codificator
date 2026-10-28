@@ -39,7 +39,7 @@ export default function App() {
     const cleanHash = raw.split('?')[0];
     if (cleanHash === 'checkout' || cleanHash === 'payment') return 'courses';
     if (cleanHash === 'classroom') return 'student-classroom';
-    if (cleanHash === 'admin' || cleanHash === 'admin-login') return 'admin_accesshere';
+    if (cleanHash === 'admin' || cleanHash === 'admin-login' || cleanHash === 'admin-dashboard' || cleanHash === 'admin_dashboard') return 'admin_accesshere';
     if (cleanHash === 'operator' || cleanHash === 'operator-dashboard' || cleanHash === 'operator_here' || cleanHash === 'operator-login') return 'operator_here';
     if (cleanHash === 'instructor' || cleanHash === 'instructor-dashboard') return 'instructor_here';
     if (cleanHash === 'verify' || cleanHash === 'verify-certificate' || cleanHash.startsWith('verify/')) return 'verify-certificate';
@@ -47,7 +47,7 @@ export default function App() {
     const cleanPath = path.split('?')[0];
     if (cleanPath === 'checkout' || cleanPath === 'payment') return 'courses';
     if (cleanPath === 'classroom') return 'student-classroom';
-    if (cleanPath === 'admin' || cleanPath === 'admin-login') return 'admin_accesshere';
+    if (cleanPath === 'admin' || cleanPath === 'admin-login' || cleanPath === 'admin-dashboard' || cleanPath === 'admin_dashboard') return 'admin_accesshere';
     if (cleanPath === 'operator' || cleanPath === 'operator-dashboard' || cleanPath === 'operator_here' || cleanPath === 'operator-login') return 'operator_here';
     if (cleanPath === 'instructor' || cleanPath === 'instructor-dashboard') return 'instructor_here';
     if (cleanPath === 'verify' || cleanPath === 'verify-certificate' || cleanPath.startsWith('verify/')) return 'verify-certificate';
@@ -424,6 +424,7 @@ export default function App() {
         {currentView === 'classroom' && (
           <StudentClassroom
             courseId={selectedCourseId || 'vexor-fullstack'}
+            currentUser={currentUser}
             onBackToCatalog={() => setCurrentView('courses')}
             onNavigateVerify={(code) => {
               setVerificationCode(code);
@@ -452,6 +453,8 @@ export default function App() {
             />
           ) : (
             <OperatorDashboard
+              currentUser={currentUser}
+              onNavigate={handleNavigate}
               onPreviewCourse={(cId) => {
                 setSelectedCourseId(cId);
                 setCurrentView('student-classroom');
@@ -474,6 +477,7 @@ export default function App() {
         {currentView === 'student-classroom' && (
           <StudentClassroom
             courseId={selectedCourseId || 'vexor-fullstack'}
+            currentUser={currentUser}
             onBackToCatalog={() => setCurrentView('courses')}
             onNavigateVerify={(code) => {
               setVerificationCode(code);

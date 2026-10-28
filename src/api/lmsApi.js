@@ -643,6 +643,24 @@ export const lmsApi = {
       body: JSON.stringify({ userIds })
     });
   },
+  async adminCreateUser(userData) {
+    return request('/auth/users', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
+  },
+  async adminUnlockCourse(payload) {
+    return request('/admin/unlock-course', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  async adminInstantCertificate(payload) {
+    return request('/certificates/admin/instant-unlock', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
 
   // Coupon & Discount System
   async validateCoupon(code, courseId) {

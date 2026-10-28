@@ -30,12 +30,19 @@ import {
   RotateCcw,
   UploadCloud,
   X,
-  Copy
+  Copy,
+  Users,
+  Lock,
+  Unlock,
+  Key,
+  EyeOff,
+  UserCheck,
+  Shield
 } from 'lucide-react';
 import PdfCourseUploadModal from './PdfCourseUploadModal';
 import MarkdownEditor from '../admin/MarkdownEditor';
 
-export default function OperatorDashboard({ onPreviewCourse }) {
+export default function OperatorDashboard({ onPreviewCourse, currentUser = null, onNavigate }) {
   const [activeTab, setActiveTab] = useState('courses'); // 'overview' | 'courses' | 'builder' | 'quizzes' | 'assignments' | 'certificates' | 'analytics' | 'settings'
   const [courses, setCourses] = useState([]);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -50,6 +57,36 @@ export default function OperatorDashboard({ onPreviewCourse }) {
 
   // Certificates State
   const [certificatesList, setCertificatesList] = useState([]);
+  // Users & Access State
+  const [usersList, setUsersList] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('ALL');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isCreatingUserSubmitting, setIsCreatingUserSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    email: '',
+    password: '',
+    name: '',
+    role: 'STUDENT',
+    phone: '',
+    unlockCourseId: '',
+    unlockAllModules: true,
+    unlockCertificate: true
+  });
+
+  // Instant Course & Certificate Unlock state
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [isUnlockSubmitting, setIsUnlockSubmitting] = useState(false);
+  const [unlockForm, setUnlockForm] = useState({
+    userId: '',
+    courseId: '',
+    unlockAllModules: true,
+    unlockCertificate: true,
+    reason: 'Operator Instant Unlock'
+  });
+
   const [certificatesLoading, setCertificatesLoading] = useState(false);
   const [certificateSearch, setCertificateSearch] = useState('');
   const [copiedCertCode, setCopiedCertCode] = useState(null);
@@ -136,7 +173,72 @@ export default function OperatorDashboard({ onPreviewCourse }) {
     loadCourses();
     loadAnalytics();
     loadCertificates();
+    loadUsers();
   }, []);
+  const loadUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const res = await lmsApi.getUsers();
+      if (res?.users) {
+        setUsersList(res.users);
+      }
+    } catch (err) {
+      console.warn('OperatorDashboard loadUsers error:', err);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleCreateUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!createUserForm.email || !createUserForm.password) {
+      showNotification('Email and password are required', 'error');
+      return;
+    }
+    try {
+      setIsCreatingUserSubmitting(true);
+      const res = await lmsApi.adminCreateUser(createUserForm);
+      showNotification(res.message || `User account for "${createUserForm.email}" created successfully!`);
+      setIsCreatingUser(false);
+      setCreateUserForm({
+        email: '',
+        password: '',
+        name: '',
+        role: 'STUDENT',
+        phone: '',
+        unlockCourseId: '',
+        unlockAllModules: true,
+        unlockCertificate: true
+      });
+      await loadUsers();
+      await loadCertificates();
+    } catch (err) {
+      showNotification(err.message || 'Failed to create user account', 'error');
+    } finally {
+      setIsCreatingUserSubmitting(false);
+    }
+  };
+
+  const handleUnlockCourseSubmit = async (e) => {
+    e.preventDefault();
+    if (!unlockForm.courseId) {
+      showNotification('Please select a course to unlock', 'error');
+      return;
+    }
+    try {
+      setIsUnlockSubmitting(true);
+      const res = await lmsApi.adminUnlockCourse(unlockForm);
+      showNotification(res.message || 'Course & Certificate successfully unlocked!');
+      setIsUnlockModalOpen(false);
+      await loadCertificates();
+      await loadAnalytics();
+    } catch (err) {
+      showNotification(err.message || 'Failed to unlock course & certificate', 'error');
+    } finally {
+      setIsUnlockSubmitting(false);
+    }
+  };
+
 
   useEffect(() => {
     if (activeTab === 'certificates') {
@@ -470,42 +572,90 @@ export default function OperatorDashboard({ onPreviewCourse }) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => setIsNewCourseOpen(true)}
+            onClick={() => setIsCreatingUser(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
+              gap: '6px',
+              padding: '9px 16px',
               borderRadius: 'var(--radius-sm)',
               background: 'var(--brand-green)',
               color: 'white',
               border: 'none',
               fontWeight: 700,
+              fontSize: '13px',
               cursor: 'pointer',
               boxShadow: 'var(--shadow-sm)'
             }}
+            title="Create a new user account with Gmail and password"
           >
-            <Plus size={16} /> New Course
+            <Plus size={16} /> Add User
+          </button>
+          <button
+            onClick={() => {
+              setUnlockForm({
+                userId: currentUser?.id || usersList[0]?.id || '',
+                courseId: courses[0]?.id || '',
+                unlockAllModules: true,
+                unlockCertificate: true,
+                reason: 'Operator Instant Unlock'
+              });
+              setIsUnlockModalOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(5, 150, 105, 0.12)',
+              color: '#059669',
+              border: '1.5px solid #10b981',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+            title="Unlock any course and generate verified certificate for any user"
+          >
+            <Award size={16} /> Unlock Course & Certificate
+          </button>
+          <button
+            onClick={() => setIsNewCourseOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={15} /> New Course
           </button>
           <button
             onClick={() => setIsPdfModalOpen(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
+              gap: '6px',
+              padding: '9px 14px',
               borderRadius: 'var(--radius-sm)',
               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
               color: 'white',
               border: 'none',
               fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)'
+              fontSize: '13px',
+              cursor: 'pointer'
             }}
           >
-            <UploadCloud size={16} /> Upload Syllabus PDF
+            <UploadCloud size={15} /> Upload Syllabus PDF
           </button>
         </div>
       </div>
@@ -525,7 +675,8 @@ export default function OperatorDashboard({ onPreviewCourse }) {
           { id: 'quizzes', label: 'Quizzes', icon: FileQuestion },
           { id: 'assignments', label: 'Assignments', icon: FileText },
           { id: 'certificates', label: 'Certificates', icon: Award },
-          { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+          { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+          { id: 'users', label: 'Users & Access', icon: Users }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -607,6 +758,39 @@ export default function OperatorDashboard({ onPreviewCourse }) {
             <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Quick Operations</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
               <div
+                onClick={() => setIsCreatingUser(true)}
+                style={{ padding: '16px', borderRadius: '8px', border: '1.5px solid var(--brand-green)', background: 'var(--bg-secondary)', cursor: 'pointer' }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--brand-green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Plus size={16} /> Add User
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Create new student or staff accounts with Gmail and password directly.
+                </p>
+              </div>
+
+              <div
+                onClick={() => {
+                  setUnlockForm({
+                    userId: currentUser?.id || usersList[0]?.id || '',
+                    courseId: courses[0]?.id || '',
+                    unlockAllModules: true,
+                    unlockCertificate: true,
+                    reason: 'Operator Instant Unlock'
+                  });
+                  setIsUnlockModalOpen(true);
+                }}
+                style={{ padding: '16px', borderRadius: '8px', border: '1.5px solid #10b981', background: 'rgba(5, 150, 105, 0.05)', cursor: 'pointer' }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '15px', color: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Award size={16} /> Unlock Course & Certificate
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Instantly unlock all curriculum modules and award verifiable certificates.
+                </p>
+              </div>
+
+              <div
                 onClick={() => setActiveTab('builder')}
                 style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', cursor: 'pointer' }}
               >
@@ -639,6 +823,226 @@ export default function OperatorDashboard({ onPreviewCourse }) {
           </div>
         </div>
       )}
+
+      
+      {/* TAB 8: USERS & ACCESS */}
+      {activeTab === 'users' && (() => {
+        const filteredUsers = usersList.filter(u => {
+          if (userRoleFilter !== 'ALL' && u.role !== userRoleFilter) return false;
+          if (!userSearch.trim()) return true;
+          const q = userSearch.toLowerCase().trim();
+          return (
+            (u.name && u.name.toLowerCase().includes(q)) ||
+            (u.email && u.email.toLowerCase().includes(q)) ||
+            (u.phone && String(u.phone).toLowerCase().includes(q))
+          );
+        });
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              background: 'var(--bg-card)',
+              padding: '14px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 260px' }}>
+                <Search size={16} color="var(--text-muted)" />
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Search by name, email, or phone..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13.5px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="ALL">All Roles</option>
+                  <option value="STUDENT">Students</option>
+                  <option value="INSTRUCTOR">Instructors</option>
+                  <option value="OPERATOR">Operators</option>
+                  <option value="ADMIN">Admins</option>
+                </select>
+                <button onClick={loadUsers} className="btn-outline" style={{ padding: '8px 14px', fontSize: '13px' }}>
+                  <RotateCcw size={14} style={{ animation: usersLoading ? 'spin 1s linear infinite' : 'none' }} />
+                </button>
+                <button
+                  onClick={() => setIsCreatingUser(true)}
+                  className="btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    background: 'var(--brand-green)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={15} /> Add User
+                </button>
+                <button
+                  onClick={() => {
+                    setUnlockForm({
+                      userId: usersList[0]?.id || '',
+                      courseId: courses[0]?.id || '',
+                      unlockAllModules: true,
+                      unlockCertificate: true,
+                      reason: 'Operator Instant Unlock'
+                    });
+                    setIsUnlockModalOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    background: 'rgba(5, 150, 105, 0.1)',
+                    color: '#059669',
+                    border: '1px solid #10b981',
+                    borderRadius: 'var(--radius-sm)',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Award size={15} /> Unlock Course & Certificate
+                </button>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+              <div style={{ width: '100%', overflowX: 'auto' }}>
+                <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                      <th style={{ padding: '14px 16px', fontWeight: 800 }}>User Name & Email</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 800 }}>Role</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 800 }}>Contact</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 800 }}>Status</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 800, textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersLoading ? (
+                      <tr>
+                        <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          <RotateCcw size={20} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px auto' }} />
+                          <div>Loading user directory...</div>
+                        </td>
+                      </tr>
+                    ) : filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          No users found matching filter criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUsers.map(u => (
+                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{u.name || 'Unnamed User'}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{u.email}</div>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              background: u.role === 'ADMIN' ? '#fee2e2' : u.role === 'OPERATOR' ? '#fef3c7' : u.role === 'INSTRUCTOR' ? '#e0e7ff' : '#dcfce7',
+                              color: u.role === 'ADMIN' ? '#dc2626' : u.role === 'OPERATOR' ? '#d97706' : u.role === 'INSTRUCTOR' ? '#4f46e5' : '#16a34a'
+                            }}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '12.5px' }}>
+                            {u.phone || '—'}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '10px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              background: u.is_active ? 'var(--brand-green-light)' : 'rgba(239, 68, 68, 0.1)',
+                              color: u.is_active ? 'var(--brand-green)' : '#ef4444'
+                            }}>
+                              {u.is_active ? 'ACTIVE' : 'DEACTIVATED'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => {
+                                setUnlockForm({
+                                  userId: u.id,
+                                  courseId: courses[0]?.id || '',
+                                  unlockAllModules: true,
+                                  unlockCertificate: true,
+                                  reason: `Operator Instant Unlock for ${u.name}`
+                                });
+                                setIsUnlockModalOpen(true);
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                background: 'rgba(5, 150, 105, 0.1)',
+                                color: '#059669',
+                                border: '1px solid #10b981',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Award size={13} /> Unlock Course & Certificate
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
 
       {/* TAB 2: COURSES LIST */}
       {activeTab === 'courses' && (
@@ -969,6 +1373,35 @@ export default function OperatorDashboard({ onPreviewCourse }) {
                           }}
                         >
                           <Edit3 size={13} style={{ marginRight: '4px' }} /> Builder
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setUnlockForm({
+                              userId: currentUser?.id || usersList[0]?.id || '',
+                              courseId: c.id,
+                              unlockAllModules: true,
+                              unlockCertificate: true,
+                              reason: `Operator Instant Unlock for ${c.title}`
+                            });
+                            setIsUnlockModalOpen(true);
+                          }}
+                          title="Instant Unlock Course & Certificate for any user or yourself"
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(5, 150, 105, 0.1)',
+                            border: '1px solid #10b981',
+                            color: '#059669',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Award size={13} /> Unlock Course & Certificate
                         </button>
 
                         <button
@@ -1931,6 +2364,352 @@ export default function OperatorDashboard({ onPreviewCourse }) {
           </div>
         </div>
       )}
+
+
+      {/* Modal: Add User Account */}
+      {isCreatingUser && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.65)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2100,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            boxShadow: 'var(--shadow-xl)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'var(--brand-green-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-green)' }}>
+                  <Plus size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: 'var(--text-primary)' }}>
+                    Add User Account
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Create student or staff account with Gmail and password
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCreatingUser(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '5px' }}>
+                  Gmail or Email Address <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. learner@gmail.com"
+                  value={createUserForm.email}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, email: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '5px' }}>
+                  User Full Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Abhay Rana"
+                  value={createUserForm.name}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, name: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '5px' }}>
+                  Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="At least 6 characters"
+                    value={createUserForm.password}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, password: e.target.value })}
+                    style={{ width: '100%', padding: '9px 38px 9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '5px' }}>
+                    System Role
+                  </label>
+                  <select
+                    value={createUserForm.role}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                  >
+                    <option value="STUDENT">Student</option>
+                    <option value="INSTRUCTOR">Instructor</option>
+                    <option value="OPERATOR">Operator</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '5px' }}>
+                    Phone Number (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. +91 9876543210"
+                    value={createUserForm.phone}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, phone: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Optional Instant Course & Certificate Unlock Upon Creation */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: 'var(--brand-green)', marginBottom: '8px' }}>
+                  <Award size={16} /> Optional Instant Course & Certificate Unlock
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px', color: 'var(--text-secondary)' }}>
+                    Auto-Enroll & Unlock Course
+                  </label>
+                  <select
+                    value={createUserForm.unlockCourseId}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, unlockCourseId: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '12.5px', boxSizing: 'border-box' }}
+                  >
+                    <option value="">-- None (Do not auto-unlock) --</option>
+                    {courses.map(c => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {createUserForm.unlockCourseId && (
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: 'pointer', fontWeight: 600 }}>
+                      <input
+                        type="checkbox"
+                        checked={createUserForm.unlockAllModules}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, unlockAllModules: e.target.checked })}
+                      />
+                      Unlock all curriculum modules immediately
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: 'pointer', fontWeight: 600, color: '#059669' }}>
+                      <input
+                        type="checkbox"
+                        checked={createUserForm.unlockCertificate}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, unlockCertificate: e.target.checked })}
+                      />
+                      Generate verified completion certificate instantly
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingUser(false)}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingUserSubmitting}
+                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: 'var(--brand-green)', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Plus size={15} />
+                  {isCreatingUserSubmitting ? 'Adding User...' : 'Add User Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Instant Course & Certificate Unlock for Any User */}
+      {isUnlockModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.65)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2100,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            maxWidth: '540px',
+            width: '100%',
+            padding: '28px',
+            boxShadow: 'var(--shadow-xl)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'rgba(5, 150, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                  <Award size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: 'var(--text-primary)' }}>
+                    Unlock Course & Certificate
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Unlock any course, all modules, and generate the certificate instantly
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsUnlockModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUnlockCourseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '6px' }}>
+                  Target User Account
+                </label>
+                <select
+                  value={unlockForm.userId}
+                  onChange={(e) => setUnlockForm({ ...unlockForm, userId: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                >
+                  <option value="">-- Select Target User --</option>
+                  {currentUser && (
+                    <option value={currentUser.id}>Me ({currentUser.name || currentUser.email}) - {currentUser.role}</option>
+                  )}
+                  {usersList.filter(u => u.id !== currentUser?.id).map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email}) - {u.role}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '6px' }}>
+                  Course to Unlock
+                </label>
+                <select
+                  value={unlockForm.courseId}
+                  onChange={(e) => setUnlockForm({ ...unlockForm, courseId: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
+                >
+                  <option value="">-- Select Course --</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.05)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '8px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={unlockForm.unlockAllModules}
+                    onChange={(e) => setUnlockForm({ ...unlockForm, unlockAllModules: e.target.checked })}
+                  />
+                  <span>Unlock All Modules & Lessons (100% Progress)</span>
+                </label>
+                <p style={{ margin: 0, paddingLeft: '22px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  Grants lifetime access, bypasses paywall, and marks all lessons and required quizzes complete.
+                </p>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: 700, color: '#059669', marginTop: '4px' }}>
+                  <input
+                    type="checkbox"
+                    checked={unlockForm.unlockCertificate}
+                    onChange={(e) => setUnlockForm({ ...unlockForm, unlockCertificate: e.target.checked })}
+                  />
+                  <span>Unlock and Issue Certificate Instantly</span>
+                </label>
+                <p style={{ margin: 0, paddingLeft: '22px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  Generates a verified certificate with permanent CFWD code verifiable in the official registry.
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '5px' }}>
+                  Authorization Reason (Audit Trail)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Operator direct approval, Course enrollment..."
+                  value={unlockForm.reason}
+                  onChange={(e) => setUnlockForm({ ...unlockForm, reason: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12.5px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsUnlockModalOpen(false)}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUnlockSubmitting}
+                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: 'var(--brand-green)', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Sparkles size={14} />
+                  {isUnlockSubmitting ? 'Unlocking...' : 'Confirm Instant Unlock'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
 
       {/* PDF Course Syllabus Upload & Scanner Modal */}
       <PdfCourseUploadModal

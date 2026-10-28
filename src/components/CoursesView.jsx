@@ -713,6 +713,49 @@ export default function CoursesView({
                         Enroll Now • ₹{price} <ArrowRight size={15} />
                       </button>
                     )}
+
+                    {/* Admin / Operator Fast Unlock Course & Certificate Button */}
+                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'OPERATOR') && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (confirm(`Admin Action: Instant unlock course "${course.title}" and generate completion certificate?`)) {
+                            try {
+                              const res = await lmsApi.adminUnlockCourse({
+                                courseId: course.id,
+                                unlockAllModules: true,
+                                unlockCertificate: true,
+                                reason: 'Direct Admin/Operator Unlock from Courses Catalog'
+                              });
+                              alert(res.message || 'Course and Certificate successfully unlocked!');
+                              onEnrollCourse(course.id);
+                              loadCoursesAndProgress();
+                            } catch (err) {
+                              alert(err.message || 'Failed to unlock course');
+                            }
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          marginTop: '8px',
+                          padding: '7px 12px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(5, 150, 105, 0.1)',
+                          border: '1px solid #10b981',
+                          color: '#059669',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                        title="Admin: Instant unlock course & certificate"
+                      >
+                        <Award size={13} /> Unlock Course & Certificate
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

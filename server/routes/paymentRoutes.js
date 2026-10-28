@@ -4,7 +4,7 @@ import { createOrder, verifySignature } from '../services/razorpayService.js';
 import { resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
 import { runQuery, queryOne, queryAll, transaction } from '../db/db.js';
 import { queryOneNeon, runNeonQuery } from '../db/neon.js';
-import { ensureEnrollment } from '../services/progressionEngine.js';
+import { ensureEnrollment, adminUnlockCourse } from '../services/progressionEngine.js';
 import { createNotification } from '../services/notificationService.js';
 import { PLANS } from '../services/billingService.js';
 import { validateCoupon, recordCouponRedemption } from '../services/couponService.js';
@@ -740,6 +740,46 @@ router.post('/admin/entitlements/revoke', requireAuth, requireRole('ADMIN'), (re
     success: true,
     message: 'Complimentary course entitlement successfully revoked.'
   });
+});
+
+// POST /api/admin/unlock-course - Administrative action to unlock any course, all its modules, and instant certificate
+router.post('/admin/unlock-course', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, res) => {
+  const { userId, courseId, unlockAllModules = true, unlockCertificate = false, reason = 'Administrative Instant Unlock' } = req.body;
+
+  if (!courseId) {
+    return res.status(400).json({ error: 'courseId is required.' });
+  }
+
+  const targetUserId = userId || req.user.id;
+
+  try {
+    const result = await adminUnlockCourse(targetUserId, courseId, {
+      unlockAllModules: Boolean(unlockAllModules),
+      unlockCertificate: Boolean(unlockCertificate),
+      adminUserId: req.user.id,
+      reason: String(reason || 'Administrative Instant Unlock').trim()
+    });
+
+    logAudit(req.user.id, 'ADMIN_COURSE_INSTANT_UNLOCKED', 'COURSE', courseId, {
+      targetUserId,
+      courseId,
+      courseTitle: result.course?.title,
+      unlockAllModules: Boolean(unlockAllModules),
+      unlockCertificate: Boolean(unlockCertificate),
+      adminEmail: req.user.email
+    });
+
+    return res.json({
+      success: true,
+      message: `Course "${result.course.title}" and all modules successfully unlocked${unlockCertificate && result.certificate ? ` and certificate issued (${result.certificate.certificate_code})` : ''}.`,
+      course: result.course,
+      enrollment: result.enrollment,
+      certificate: result.certificate
+    });
+  } catch (err) {
+    console.error('[paymentRoutes admin unlock-course error]:', err);
+    return res.status(500).json({ error: 'Failed to unlock course: ' + err.message });
+  }
 });
 
 export default router;

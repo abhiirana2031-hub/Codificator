@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { queryAll, queryOne, runQuery, transaction } from '../db/db.js';
 import { queryAllNeon, queryOneNeon, runNeonQuery } from '../db/neon.js';
 import { parseAuthUser, resolveAuthUser, requireAuth, requireRole, logAudit } from '../middleware/auth.js';
+import { adminUnlockCourse } from '../services/progressionEngine.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,6 +129,140 @@ router.get('/users', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, 
     limit: Number(limit)
   });
 });
+
+// 2b. Admin & Operator: Create a new user using their Gmail and create a password
+const handleAdminCreateUser = async (req, res) => {
+  const { email, password, name, role = 'STUDENT', phone, unlockCourseId, unlockAllModules = true, unlockCertificate = false } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Gmail/Email and password are required.' });
+  }
+
+  const cleanEmail = String(email).trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cleanEmail)) {
+    return res.status(400).json({ error: 'Please provide a valid Gmail or email address.' });
+  }
+
+  if (String(password).length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+  }
+
+  const allowedRoles = ['STUDENT', 'INSTRUCTOR', 'OPERATOR', 'ADMIN'];
+  const targetRole = allowedRoles.includes(String(role).toUpperCase()) ? String(role).toUpperCase() : 'STUDENT';
+  const cleanName = (name && String(name).trim()) ? String(name).trim() : cleanEmail.split('@')[0];
+  const cleanPhone = phone ? String(phone).trim() : null;
+
+  const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+  if (IS_SERVERLESS) {
+    try {
+      const existing = await queryOneNeon('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (existing) {
+        return res.status(400).json({ error: `User with email "${cleanEmail}" is already registered.` });
+      }
+
+      if (cleanPhone) {
+        const phoneConflict = await queryOneNeon('SELECT id FROM users WHERE phone = $1', [cleanPhone]);
+        if (phoneConflict) {
+          return res.status(400).json({ error: 'This phone number is already associated with another user.' });
+        }
+      }
+
+      const id = `usr-${targetRole.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanName)}&backgroundColor=10b981`;
+
+      await runNeonQuery(
+        `INSERT INTO users (id, email, password_hash, name, display_name, phone, role, avatar_url, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)`,
+        [id, cleanEmail, String(password), cleanName, cleanName, cleanPhone, targetRole, avatarUrl]
+      );
+
+      const createdUser = await queryOneNeon('SELECT * FROM users WHERE id = $1', [id]);
+      logAudit(req.user.id, 'ADMIN_CREATED_USER', 'user', id, { email: cleanEmail, role: targetRole });
+
+      let courseUnlockResult = null;
+      if (unlockCourseId) {
+        try {
+          courseUnlockResult = await adminUnlockCourse(id, unlockCourseId, {
+            unlockAllModules: Boolean(unlockAllModules),
+            unlockCertificate: Boolean(unlockCertificate),
+            adminUserId: req.user.id,
+            reason: 'Instant unlock upon user creation by administrator'
+          });
+        } catch (uErr) {
+          console.warn('[handleAdminCreateUser] Optional course unlock note:', uErr.message);
+        }
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: `User account for "${cleanEmail}" created successfully.`,
+        user: sanitizeUser(createdUser),
+        courseUnlock: courseUnlockResult
+      });
+    } catch (neonErr) {
+      console.error('[authRoutes admin create user Neon error]:', neonErr);
+      return res.status(500).json({ error: 'Failed to create user in Neon: ' + neonErr.message });
+    }
+  }
+
+  // SQLite execution
+  const existing = queryOne('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+  if (existing) {
+    return res.status(400).json({ error: `User with email "${cleanEmail}" is already registered.` });
+  }
+
+  if (cleanPhone) {
+    const phoneConflict = queryOne('SELECT id FROM users WHERE phone = ?', [cleanPhone]);
+    if (phoneConflict) {
+      return res.status(400).json({ error: 'This phone number is already associated with another user.' });
+    }
+  }
+
+  const id = `usr-${targetRole.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanName)}&backgroundColor=10b981`;
+
+  try {
+    transaction(() => {
+      runQuery(
+        `INSERT INTO users (id, email, password_hash, name, display_name, phone, role, avatar_url, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [id, cleanEmail, String(password), cleanName, cleanName, cleanPhone, targetRole, avatarUrl]
+      );
+    });
+
+    const createdUser = queryOne('SELECT * FROM users WHERE id = ?', [id]);
+    logAudit(req.user.id, 'ADMIN_CREATED_USER', 'user', id, { email: cleanEmail, role: targetRole });
+
+    let courseUnlockResult = null;
+    if (unlockCourseId) {
+      try {
+        courseUnlockResult = await adminUnlockCourse(id, unlockCourseId, {
+          unlockAllModules: Boolean(unlockAllModules),
+          unlockCertificate: Boolean(unlockCertificate),
+          adminUserId: req.user.id,
+          reason: 'Instant unlock upon user creation by administrator'
+        });
+      } catch (uErr) {
+        console.warn('[handleAdminCreateUser] Optional course unlock note:', uErr.message);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `User account for "${cleanEmail}" created successfully.`,
+      user: sanitizeUser(createdUser),
+      courseUnlock: courseUnlockResult
+    });
+  } catch (err) {
+    console.error('[authRoutes admin create user SQLite error]:', err);
+    return res.status(500).json({ error: 'Failed to create user account: ' + err.message });
+  }
+};
+
+router.post('/users', requireAuth, requireRole('ADMIN', 'OPERATOR'), handleAdminCreateUser);
+router.post('/admin/create-user', requireAuth, requireRole('ADMIN', 'OPERATOR'), handleAdminCreateUser);
 
 // 3. Authenticate / Login
 router.post('/login', async (req, res) => {

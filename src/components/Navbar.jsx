@@ -539,6 +539,52 @@ export default function Navbar({
             {theme === 'dark' ? <Sun size={17} color="#f59e0b" /> : <Moon size={17} />}
           </button>
 
+          {/* Direct Admin & Operator Dashboard Badges for Staff */}
+          {currentUser?.role === 'ADMIN' && (
+            <button
+              onClick={() => navigateTo('admin_accesshere')}
+              className="desktop-only"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 11px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: '#dc2626',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+              title="Open Platform Administrator Panel"
+            >
+              <Shield size={13} /> Admin Panel
+            </button>
+          )}
+          {(currentUser?.role === 'OPERATOR' || currentUser?.role === 'ADMIN') && (
+            <button
+              onClick={() => navigateTo('operator_here')}
+              className="desktop-only"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 11px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--brand-green-light)',
+                color: 'var(--brand-green)',
+                border: '1px solid rgba(5, 150, 105, 0.3)',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+              title="Open Operator Console"
+            >
+              <Layers size={13} /> Operator
+            </button>
+          )}
+
           {/* User State: Sign In Button or Compact User Menu */}
           {currentUser ? (
             <div
@@ -1232,6 +1278,11 @@ export default function Navbar({
                       {(currentUser.role === 'OPERATOR' || currentUser.role === 'ADMIN') && (
                         <button onClick={() => navigateTo('operator_here')} style={{ padding: '8px', textAlign: 'left', fontSize: '13.5px', color: 'var(--brand-green)', fontWeight: 700 }}>
                           Operator Dashboard
+                        </button>
+                      )}
+                      {currentUser.role === 'ADMIN' && (
+                        <button onClick={() => navigateTo('admin_accesshere')} style={{ padding: '8px', textAlign: 'left', fontSize: '13.5px', color: '#dc2626', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Shield size={14} /> Admin Dashboard
                         </button>
                       )}
                     </div>
