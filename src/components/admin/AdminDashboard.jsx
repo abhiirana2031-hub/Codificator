@@ -376,10 +376,18 @@ export default function AdminDashboard({ currentUser, onNavigate }) {
       setError('Please select a course to unlock.');
       return;
     }
+    const resolvedUserId = unlockForm.userId || currentUser?.id || usersList[0]?.id;
+    if (!resolvedUserId) {
+      setError('Please select a target user to unlock the course for.');
+      return;
+    }
     try {
       setIsUnlockSubmitting(true);
       setError('');
-      const res = await lmsApi.adminUnlockCourse(unlockForm);
+      const res = await lmsApi.adminUnlockCourse({
+        ...unlockForm,
+        userId: resolvedUserId
+      });
       setMessage(res.message || 'Course and modules successfully unlocked!');
       setIsUnlockModalOpen(false);
       setSelectedUserForUnlock(null);
@@ -2378,9 +2386,11 @@ export default function AdminDashboard({ currentUser, onNavigate }) {
                 </div>
               </div>
             )}
+          </div>
+        )}
 
-            {/* Modal: Create User Account with Gmail & Password */}
-            {isCreatingUser && (
+        {/* Modal: Create User Account with Gmail & Password (Global across all tabs) */}
+        {isCreatingUser && (
               <div style={{
                 position: 'fixed',
                 inset: 0,
@@ -2639,9 +2649,8 @@ export default function AdminDashboard({ currentUser, onNavigate }) {
                         Target User Account
                       </label>
                       <select
-                        value={unlockForm.userId}
+                        value={unlockForm.userId || currentUser?.id || ''}
                         onChange={(e) => setUnlockForm({ ...unlockForm, userId: e.target.value })}
-                        required
                         style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
                       >
                         <option value={currentUser?.id}>Me (Current Admin: {currentUser?.name || currentUser?.email})</option>
@@ -2738,8 +2747,6 @@ export default function AdminDashboard({ currentUser, onNavigate }) {
                 </div>
               </div>
             )}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -225,9 +225,17 @@ export default function OperatorDashboard({ onPreviewCourse, currentUser = null,
       showNotification('Please select a course to unlock', 'error');
       return;
     }
+    const resolvedUserId = unlockForm.userId || currentUser?.id || usersList[0]?.id;
+    if (!resolvedUserId) {
+      showNotification('Please select a target user to unlock the course for.', 'error');
+      return;
+    }
     try {
       setIsUnlockSubmitting(true);
-      const res = await lmsApi.adminUnlockCourse(unlockForm);
+      const res = await lmsApi.adminUnlockCourse({
+        ...unlockForm,
+        userId: resolvedUserId
+      });
       showNotification(res.message || 'Course & Certificate successfully unlocked!');
       setIsUnlockModalOpen(false);
       await loadCertificates();
@@ -2609,15 +2617,11 @@ export default function OperatorDashboard({ onPreviewCourse, currentUser = null,
                   Target User Account
                 </label>
                 <select
-                  value={unlockForm.userId}
+                  value={unlockForm.userId || currentUser?.id || ''}
                   onChange={(e) => setUnlockForm({ ...unlockForm, userId: e.target.value })}
-                  required
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' }}
                 >
-                  <option value="">-- Select Target User --</option>
-                  {currentUser && (
-                    <option value={currentUser.id}>Me ({currentUser.name || currentUser.email}) - {currentUser.role}</option>
-                  )}
+                  <option value={currentUser?.id || ''}>Me (Current Operator: {currentUser?.name || currentUser?.email || 'Me'})</option>
                   {usersList.filter(u => u.id !== currentUser?.id).map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.email}) - {u.role}</option>
                   ))}

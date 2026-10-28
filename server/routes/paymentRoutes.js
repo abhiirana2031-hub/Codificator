@@ -750,35 +750,40 @@ router.post('/admin/unlock-course', requireAuth, requireRole('ADMIN', 'OPERATOR'
     return res.status(400).json({ error: 'courseId is required.' });
   }
 
-  const targetUserId = userId || req.user.id;
+  const targetUserId = (userId && String(userId).trim() && userId !== 'current') ? String(userId).trim() : req.user?.id;
+  if (!targetUserId) {
+    return res.status(400).json({ error: 'Target user identifier is required.' });
+  }
 
   try {
     const result = await adminUnlockCourse(targetUserId, courseId, {
       unlockAllModules: Boolean(unlockAllModules),
       unlockCertificate: Boolean(unlockCertificate),
-      adminUserId: req.user.id,
+      adminUserId: req.user?.id || null,
       reason: String(reason || 'Administrative Instant Unlock').trim()
     });
 
-    logAudit(req.user.id, 'ADMIN_COURSE_INSTANT_UNLOCKED', 'COURSE', courseId, {
-      targetUserId,
-      courseId,
-      courseTitle: result.course?.title,
-      unlockAllModules: Boolean(unlockAllModules),
-      unlockCertificate: Boolean(unlockCertificate),
-      adminEmail: req.user.email
-    });
+    if (req.user?.id) {
+      logAudit(req.user.id, 'ADMIN_COURSE_INSTANT_UNLOCKED', 'COURSE', courseId, {
+        targetUserId,
+        courseId,
+        courseTitle: result.course?.title,
+        unlockAllModules: Boolean(unlockAllModules),
+        unlockCertificate: Boolean(unlockCertificate),
+        adminEmail: req.user.email
+      });
+    }
 
     return res.json({
       success: true,
-      message: `Course "${result.course.title}" and all modules successfully unlocked${unlockCertificate && result.certificate ? ` and certificate issued (${result.certificate.certificate_code})` : ''}.`,
+      message: `Course "${result.course?.title || courseId}" and all modules successfully unlocked${unlockCertificate && result.certificate ? ` and certificate issued (${result.certificate.certificate_code})` : ''}.`,
       course: result.course,
       enrollment: result.enrollment,
       certificate: result.certificate
     });
   } catch (err) {
     console.error('[paymentRoutes admin unlock-course error]:', err);
-    return res.status(500).json({ error: 'Failed to unlock course: ' + err.message });
+    return res.status(err.message?.includes('not found') ? 404 : 500).json({ error: 'Failed to unlock course: ' + err.message });
   }
 });
 

@@ -493,6 +493,13 @@ export async function adminUnlockCourse(userId, courseId, { unlockAllModules = t
     if (!course) throw new Error('Course not found');
     const targetCourseId = course.id;
 
+    // Resolve valid admin id to satisfy foreign key constraint on users(id)
+    let validAdminId = null;
+    if (adminUserId) {
+      const adminCheck = await queryOneNeon('SELECT id FROM users WHERE id = $1', [adminUserId]);
+      if (adminCheck) validAdminId = adminCheck.id;
+    }
+
     // 1. Grant Entitlement
     const entitlementId = `ent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     await runNeonQuery(
@@ -503,7 +510,7 @@ export async function adminUnlockCourse(userId, courseId, { unlockAllModules = t
          reason = EXCLUDED.reason,
          granted_by = EXCLUDED.granted_by,
          revoked_at = NULL`,
-      [entitlementId, userId, targetCourseId, adminUserId || 'ADMIN', reason]
+      [entitlementId, userId, targetCourseId, validAdminId, reason]
     );
 
     // 2. Ensure Enrollment
@@ -617,6 +624,13 @@ export async function adminUnlockCourse(userId, courseId, { unlockAllModules = t
     if (!course) throw new Error('Course not found');
     const targetCourseId = course.id;
 
+    // Resolve valid admin id to satisfy foreign key constraint on users(id)
+    let validAdminId = null;
+    if (adminUserId) {
+      const adminCheck = queryOne('SELECT id FROM users WHERE id = ?', [adminUserId]);
+      if (adminCheck) validAdminId = adminCheck.id;
+    }
+
     // 1. Grant Entitlement
     const entitlementId = `ent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     runQuery(
@@ -627,7 +641,7 @@ export async function adminUnlockCourse(userId, courseId, { unlockAllModules = t
          reason = excluded.reason,
          granted_by = excluded.granted_by,
          revoked_at = NULL`,
-      [entitlementId, userId, targetCourseId, adminUserId || 'ADMIN', reason]
+      [entitlementId, userId, targetCourseId, validAdminId, reason]
     );
 
     // 2. Ensure Enrollment

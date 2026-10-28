@@ -73,14 +73,14 @@ router.get('/users', requireAuth, requireRole('ADMIN', 'OPERATOR'), async (req, 
       const params = [];
 
       if (role && role !== 'ALL') {
-        sql += ' AND UPPER(role) = ?';
         params.push(role.toUpperCase());
+        sql += ' AND UPPER(role) = $' + params.length;
       }
 
       if (search && search.trim()) {
-        sql += ' AND (name ILIKE ? OR email ILIKE ? OR phone ILIKE ?)';
         const term = `%${search.trim()}%`;
         params.push(term, term, term);
+        sql += ' AND (name ILIKE $' + (params.length - 2) + ' OR email ILIKE $' + (params.length - 1) + ' OR phone ILIKE $' + params.length + ')';
       }
 
       sql += ' ORDER BY created_at DESC';
@@ -179,7 +179,7 @@ const handleAdminCreateUser = async (req, res) => {
       );
 
       const createdUser = await queryOneNeon('SELECT * FROM users WHERE id = $1', [id]);
-      logAudit(req.user.id, 'ADMIN_CREATED_USER', 'user', id, { email: cleanEmail, role: targetRole });
+      logAudit(req.user?.id || 'admin', 'ADMIN_CREATED_USER', 'user', id, { email: cleanEmail, role: targetRole });
 
       let courseUnlockResult = null;
       if (unlockCourseId) {
@@ -187,7 +187,7 @@ const handleAdminCreateUser = async (req, res) => {
           courseUnlockResult = await adminUnlockCourse(id, unlockCourseId, {
             unlockAllModules: Boolean(unlockAllModules),
             unlockCertificate: Boolean(unlockCertificate),
-            adminUserId: req.user.id,
+            adminUserId: req.user?.id || null,
             reason: 'Instant unlock upon user creation by administrator'
           });
         } catch (uErr) {
@@ -233,7 +233,7 @@ const handleAdminCreateUser = async (req, res) => {
     });
 
     const createdUser = queryOne('SELECT * FROM users WHERE id = ?', [id]);
-    logAudit(req.user.id, 'ADMIN_CREATED_USER', 'user', id, { email: cleanEmail, role: targetRole });
+    logAudit(req.user?.id || 'admin', 'ADMIN_CREATED_USER', 'user', id, { email: cleanEmail, role: targetRole });
 
     let courseUnlockResult = null;
     if (unlockCourseId) {
@@ -241,7 +241,7 @@ const handleAdminCreateUser = async (req, res) => {
         courseUnlockResult = await adminUnlockCourse(id, unlockCourseId, {
           unlockAllModules: Boolean(unlockAllModules),
           unlockCertificate: Boolean(unlockCertificate),
-          adminUserId: req.user.id,
+          adminUserId: req.user?.id || null,
           reason: 'Instant unlock upon user creation by administrator'
         });
       } catch (uErr) {
